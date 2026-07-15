@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
 
@@ -107,6 +107,22 @@ async function showDetail(row: any) {
     ElMessage.error((e as Error).message || '加载明细失败')
   }
 }
+
+async function remove(row: any) {
+  try {
+    await ElMessageBox.confirm(`确认删除盘点单 ${row.docNo}？删除后不可恢复。`, '删除确认', { type: 'warning' })
+    await api.deleteStocktake(row.id)
+    ElMessage.success('已删除')
+    if (detailVisible.value && detail.value?.id === row.id) {
+      detailVisible.value = false
+      detail.value = null
+    }
+    await load()
+  } catch (e) {
+    if (e === 'cancel') return
+    ElMessage.error((e as Error).message || '删除失败')
+  }
+}
 </script>
 
 <template>
@@ -163,10 +179,11 @@ async function showDetail(row: any) {
         <el-table-column label="审核时间" width="170">
           <template #default="{ row }">{{ fmtTime(row.postedAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="showDetail(row)">明细</el-button>
             <el-button link type="primary" @click="router.push(`/stocktakes/${row.id}`)">详情</el-button>
+            <el-button v-if="row.status !== 'posted'" link type="danger" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

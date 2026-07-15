@@ -91,7 +91,15 @@ async function cancel() {
   await load()
 }
 
+async function remove() {
+  await ElMessageBox.confirm('确认删除该盘点单？删除后不可恢复。', '删除确认', { type: 'warning' })
+  await api.deleteStocktake(id.value)
+  ElMessage.success('已删除')
+  router.push('/stocktakes')
+}
+
 const canEditCount = computed(() => ['draft', 'counting'].includes(detail.value?.status))
+const canDelete = computed(() => detail.value && detail.value.status !== 'posted')
 
 function diffOf(row: any) {
   const book = Number(row.bookQty) || 0
@@ -115,6 +123,7 @@ function diffOf(row: any) {
             <el-button v-if="canEditCount" type="success" @click="submitCount">提交盘点</el-button>
             <el-button v-if="detail.status === 'counting' || detail.status === 'review'" type="warning" @click="post">过账</el-button>
             <el-button v-if="detail.status !== 'posted' && detail.status !== 'cancelled'" type="danger" @click="cancel">作废</el-button>
+            <el-button v-if="canDelete" type="danger" plain @click="remove">删除</el-button>
           </div>
         </div>
       </template>

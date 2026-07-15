@@ -95,6 +95,7 @@ export const api = {
   countStocktake: (id: number, body: unknown) => client.post(`/stocktakes/${id}/count`, body),
   postStocktake: (id: number) => client.post(`/stocktakes/${id}/post`),
   cancelStocktake: (id: number) => client.post(`/stocktakes/${id}/cancel`),
+  deleteStocktake: (id: number) => client.delete(`/stocktakes/${id}`),
   listStocktakeDetails: (params?: Record<string, unknown>) => page<any>('/stocktake-details', params),
 
   // transfers

@@ -550,6 +550,30 @@ func (s *DocumentService) CancelStocktake(id uint64) error {
 	return s.db().Model(&order).Update("status", model.DocStatusCancelled).Error
 }
 
+// DeleteStocktake 物理删除盘点单及明细；已过账不可删（库存已调整）
+func (s *DocumentService) DeleteStocktake(id uint64) error {
+	var order model.StocktakeOrder
+	if err := s.db().First(&order, id).Error; err != nil {
+		return mapNotFound(err)
+	}
+	if order.Status == model.DocStatusPosted {
+		return ErrInvalidStatus
+	}
+	return s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		if e := tx.Where("tenant_id = ? AND order_id = ?", s.tenantID, id).Delete(&model.StocktakeItem{}).Error; e != nil {
+			return e
+		}
+		res := tx.Where("tenant_id = ? AND id = ?", s.tenantID, id).Delete(&model.StocktakeOrder{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
+}
+
 func (s *DocumentService) ListStocktakeDetails(keyword, status string, warehouseID, stocktakeID uint64, from, to *time.Time, page, pageSize int) ([]model.StocktakeItem, int64, error) {
 	q := s.repos.DB.Table("stocktake_items AS i").
 		Select(`i.id, i.tenant_id, i.order_id, i.location_id, i.inv_sku_id, i.book_qty, i.count_qty, i.diff_qty, i.remark,

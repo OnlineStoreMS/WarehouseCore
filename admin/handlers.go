@@ -937,6 +937,19 @@ func (h *Handlers) CancelStocktake(c *gin.Context) {
 	response.OK(c, nil)
 }
 
+func (h *Handlers) DeleteStocktake(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	if err := h.doc(c).DeleteStocktake(id); err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
 func (h *Handlers) ListStocktakeDetails(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
 	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
