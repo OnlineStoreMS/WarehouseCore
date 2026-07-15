@@ -22,8 +22,10 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	// Products (parent SKU)
 	g.GET("/products", h.ListProducts)
 	g.POST("/products", h.CreateProduct)
+	g.POST("/products/with-skus", h.CreateProductWithSkus)
 	g.GET("/products/:id", h.GetProduct)
 	g.PUT("/products/:id", h.UpdateProduct)
+	g.PUT("/products/:id/with-skus", h.UpdateProductWithSkus)
 	g.DELETE("/products/:id", h.DeleteProduct)
 
 	// Inventory SKUs

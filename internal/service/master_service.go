@@ -202,6 +202,212 @@ func (s *MasterService) UpdateProduct(id uint64, in *dto.InvProductDTO) (*model.
 	return &item, nil
 }
 
+func (s *MasterService) CreateProductWithSkus(in *dto.ProductWithSkusDTO) (*model.InvProduct, error) {
+	if len(in.Skus) == 0 {
+		return nil, ErrBadRequest
+	}
+	codes := map[string]struct{}{}
+	for _, sk := range in.Skus {
+		code := strings.TrimSpace(sk.SkuCode)
+		if code == "" {
+			return nil, ErrBadRequest
+		}
+		if _, ok := codes[code]; ok {
+			return nil, ErrDuplicateCode
+		}
+		codes[code] = struct{}{}
+	}
+	var createdID uint64
+	err := s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		prod, err := s.createProductTx(tx, &in.InvProductDTO)
+		if err != nil {
+			return err
+		}
+		defType := in.DefaultProductType
+		if defType == "" {
+			defType = model.ProductTypeNormal
+		}
+		for i := range in.Skus {
+			sk := &in.Skus[i]
+			pt := sk.ProductType
+			if pt == "" {
+				pt = defType
+			}
+			item := skuFromItem(s.tenantID, prod.ID, pt, sk)
+			if e := tx.Create(item).Error; e != nil {
+				if isUniqueViolation(e) {
+					return ErrDuplicateCode
+				}
+				return e
+			}
+		}
+		createdID = prod.ID
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.GetProduct(createdID)
+}
+
+func (s *MasterService) UpdateProductWithSkus(id uint64, in *dto.ProductWithSkusDTO) (*model.InvProduct, error) {
+	if len(in.Skus) == 0 {
+		return nil, ErrBadRequest
+	}
+	codes := map[string]struct{}{}
+	for _, sk := range in.Skus {
+		code := strings.TrimSpace(sk.SkuCode)
+		if code == "" {
+			return nil, ErrBadRequest
+		}
+		if _, ok := codes[code]; ok {
+			return nil, ErrDuplicateCode
+		}
+		codes[code] = struct{}{}
+	}
+	err := s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		var prod model.InvProduct
+		if e := tx.Where("tenant_id = ?", s.tenantID).First(&prod, id).Error; e != nil {
+			return mapNotFound(e)
+		}
+		s.applyProductFields(&prod, &in.InvProductDTO)
+		if e := tx.Save(&prod).Error; e != nil {
+			if isUniqueViolation(e) {
+				return ErrDuplicateCode
+			}
+			return e
+		}
+		var existing []model.InvSku
+		if e := tx.Where("tenant_id = ? AND parent_id = ?", s.tenantID, id).Find(&existing).Error; e != nil {
+			return e
+		}
+		keep := map[uint64]struct{}{}
+		defType := in.DefaultProductType
+		if defType == "" {
+			defType = model.ProductTypeNormal
+		}
+		for i := range in.Skus {
+			sk := &in.Skus[i]
+			pt := sk.ProductType
+			if pt == "" {
+				pt = defType
+			}
+			if sk.ID > 0 {
+				var item model.InvSku
+				if e := tx.Where("tenant_id = ? AND parent_id = ?", s.tenantID, id).First(&item, sk.ID).Error; e != nil {
+					return mapNotFound(e)
+				}
+				applySkuFields(&item, pt, sk)
+				if e := tx.Save(&item).Error; e != nil {
+					if isUniqueViolation(e) {
+						return ErrDuplicateCode
+					}
+					return e
+				}
+				keep[item.ID] = struct{}{}
+				continue
+			}
+			item := skuFromItem(s.tenantID, id, pt, sk)
+			if e := tx.Create(item).Error; e != nil {
+				if isUniqueViolation(e) {
+					return ErrDuplicateCode
+				}
+				return e
+			}
+			keep[item.ID] = struct{}{}
+		}
+		for _, old := range existing {
+			if _, ok := keep[old.ID]; ok {
+				continue
+			}
+			var cnt int64
+			tx.Model(&model.StockMovement{}).Where("tenant_id = ? AND inv_sku_id = ?", s.tenantID, old.ID).Count(&cnt)
+			if cnt > 0 {
+				return ErrHasMovements
+			}
+			if e := tx.Where("tenant_id = ?", s.tenantID).Delete(&model.InvSku{}, old.ID).Error; e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.GetProduct(id)
+}
+
+func (s *MasterService) createProductTx(tx *gorm.DB, in *dto.InvProductDTO) (*model.InvProduct, error) {
+	item := &model.InvProduct{TenantID: s.tenantID}
+	s.applyProductFields(item, in)
+	if err := tx.Create(item).Error; err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrDuplicateCode
+		}
+		return nil, err
+	}
+	return item, nil
+}
+
+func (s *MasterService) applyProductFields(item *model.InvProduct, in *dto.InvProductDTO) {
+	item.ParentSku = strings.TrimSpace(in.ParentSku)
+	item.Name = strings.TrimSpace(in.Name)
+	item.CategoryID = in.CategoryID
+	item.PackSpecID = in.PackSpecID
+	item.DefaultWarehouseID = in.DefaultWarehouseID
+	item.ScoreFactor = in.ScoreFactor
+	if item.ScoreFactor == 0 {
+		item.ScoreFactor = 1
+	}
+	item.Remark = in.Remark
+	item.Pic = in.Pic
+	item.AlbumPics = in.AlbumPics
+	item.Status = statusOrDefault(in.Status)
+	item.PimSpuID = in.PimSpuID
+	if in.DevelopedAt != nil {
+		if *in.DevelopedAt == "" {
+			item.DevelopedAt = nil
+		} else if t, err := time.Parse("2006-01-02", *in.DevelopedAt); err == nil {
+			item.DevelopedAt = &t
+		}
+	}
+}
+
+func skuFromItem(tenantID, parentID uint64, productType string, in *dto.ProductSkuItemDTO) *model.InvSku {
+	item := &model.InvSku{
+		TenantID:    tenantID,
+		ParentID:    parentID,
+		ProductType: productType,
+	}
+	applySkuFields(item, productType, in)
+	return item
+}
+
+func applySkuFields(item *model.InvSku, productType string, in *dto.ProductSkuItemDTO) {
+	item.SkuCode = strings.TrimSpace(in.SkuCode)
+	item.Pic = in.Pic
+	item.Status = in.Status
+	if item.Status == "" {
+		item.Status = "active"
+	}
+	item.ProductType = productType
+	if item.ProductType == "" {
+		item.ProductType = model.ProductTypeNormal
+	}
+	item.PickName = in.PickName
+	item.Style1 = in.Style1
+	item.Style2 = in.Style2
+	item.Style3 = in.Style3
+	item.WeightG = in.WeightG
+	item.LastPurchasePrice = in.LastPurchasePrice
+	item.MinPurchasePrice = in.MinPurchasePrice
+	item.RetailPrice = in.RetailPrice
+	item.Description = in.Description
+	item.UPC = in.UPC
+	item.ASIN = in.ASIN
+	item.SupplierItemNo = in.SupplierItemNo
+}
+
 func (s *MasterService) DeleteProduct(id uint64) error {
 	var skuIDs []uint64
 	s.db().Model(&model.InvSku{}).Where("parent_id = ?", id).Pluck("id", &skuIDs)

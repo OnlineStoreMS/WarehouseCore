@@ -33,7 +33,9 @@ export const api = {
   listProducts: (params?: Record<string, unknown>) => page<any>('/products', params),
   getProduct: (id: number) => client.get(`/products/${id}`).then((r) => r.data.data),
   createProduct: (body: unknown) => client.post('/products', body),
+  createProductWithSkus: (body: unknown) => client.post('/products/with-skus', body),
   updateProduct: (id: number, body: unknown) => client.put(`/products/${id}`, body),
+  updateProductWithSkus: (id: number, body: unknown) => client.put(`/products/${id}/with-skus`, body),
   deleteProduct: (id: number) => client.delete(`/products/${id}`),
 
   // skus

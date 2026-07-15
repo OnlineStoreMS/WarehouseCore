@@ -27,6 +27,33 @@ type InvProductDTO struct {
 	PimSpuID           *uint64 `json:"pimSpuId"`
 }
 
+// ProductWithSkusDTO 对齐普源「新增普通商品」：一次提交父SKU + 库存SKU明细
+type ProductWithSkusDTO struct {
+	InvProductDTO
+	DefaultProductType string            `json:"defaultProductType"` // normal/combo/assembly
+	Skus               []ProductSkuItemDTO `json:"skus" binding:"required,min=1"`
+}
+
+type ProductSkuItemDTO struct {
+	ID                uint64  `json:"id"`
+	SkuCode           string  `json:"skuCode" binding:"required"`
+	Pic               string  `json:"pic"`
+	Status            string  `json:"status"`
+	ProductType       string  `json:"productType"`
+	PickName          string  `json:"pickName"`
+	Style1            string  `json:"style1"`
+	Style2            string  `json:"style2"`
+	Style3            string  `json:"style3"`
+	WeightG           float64 `json:"weightG"`
+	LastPurchasePrice float64 `json:"lastPurchasePrice"`
+	MinPurchasePrice  float64 `json:"minPurchasePrice"`
+	RetailPrice       float64 `json:"retailPrice"`
+	Description       string  `json:"description"`
+	UPC               string  `json:"upc"`
+	ASIN              string  `json:"asin"`
+	SupplierItemNo    string  `json:"supplierItemNo"`
+}
+
 type InvPackSpecDTO struct {
 	Name    string  `json:"name" binding:"required"`
 	Cost    float64 `json:"cost"`

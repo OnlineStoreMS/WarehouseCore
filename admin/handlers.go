@@ -262,6 +262,39 @@ func (h *Handlers) CreateProduct(c *gin.Context) {
 	response.Created(c, item)
 }
 
+func (h *Handlers) CreateProductWithSkus(c *gin.Context) {
+	var in dto.ProductWithSkusDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.master(c).CreateProductWithSkus(&in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.Created(c, item)
+}
+
+func (h *Handlers) UpdateProductWithSkus(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in dto.ProductWithSkusDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.master(c).UpdateProductWithSkus(id, &in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
 func (h *Handlers) UpdateProduct(c *gin.Context) {
 	id, err := httputil.ParseID(c)
 	if err != nil {

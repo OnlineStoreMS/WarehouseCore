@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
+import ProductFormDialog from './ProductFormDialog.vue'
 
 type ViewTab = 'all' | 'sku' | 'combo' | 'assembly'
 
@@ -19,10 +20,8 @@ const viewTab = ref<ViewTab>('all')
 const categoryId = ref<number | undefined>()
 const uncategorized = ref(false)
 
-const productVisible = ref(false)
-const productForm = ref<any>({})
-const skuVisible = ref(false)
-const skuForm = ref<any>({})
+const formVisible = ref(false)
+const editingProductId = ref<number | null>(null)
 const defaultSkuType = ref('normal')
 
 const categories = ref<any[]>([])
@@ -190,51 +189,19 @@ function typeLabel(t?: string) {
 
 function openCreateProduct(skuType = 'normal') {
   defaultSkuType.value = skuType
-  const today = new Date().toISOString().slice(0, 10)
-  productForm.value = {
-    parentSku: '',
-    name: '',
-    categoryId: categoryId.value,
-    packSpecId: undefined,
-    scoreFactor: 1,
-    remark: '',
-    status: 1,
-    developedAt: today,
-    defaultWarehouseId: warehouses.value.find((w) => w.isDefault)?.id || undefined,
-    pic: '',
-  }
-  productVisible.value = true
+  editingProductId.value = null
+  formVisible.value = true
 }
 
 function openEditProduct(row: any) {
-  productForm.value = {
-    ...row,
-    developedAt: row.developedAt ? String(row.developedAt).slice(0, 10) : '',
-  }
-  productVisible.value = true
+  defaultSkuType.value = row.skus?.[0]?.productType || 'normal'
+  editingProductId.value = row.id
+  formVisible.value = true
 }
 
-async function saveProduct() {
-  try {
-    const body = { ...productForm.value }
-    if (productForm.value.id) {
-      await api.updateProduct(productForm.value.id, body)
-      ElMessage.success('已保存')
-      productVisible.value = false
-      await load()
-      return
-    }
-    const res = await api.createProduct(body)
-    const created = (res as any)?.data?.data
-    ElMessage.success('商品已创建')
-    productVisible.value = false
-    await load()
-    if (created?.id) {
-      openCreateSku({ id: created.id }, defaultSkuType.value)
-    }
-  } catch (e) {
-    ElMessage.error((e as Error).message || '保存失败')
-  }
+function openEditByParentId(parentId: number) {
+  editingProductId.value = parentId
+  formVisible.value = true
 }
 
 async function removeProduct(row: any) {
@@ -242,49 +209,6 @@ async function removeProduct(row: any) {
   await api.deleteProduct(row.id)
   ElMessage.success('已删除')
   await load()
-}
-
-function openCreateSku(parent: any, productType = 'normal') {
-  skuForm.value = {
-    parentId: parent.id,
-    skuCode: '',
-    pickName: '',
-    style1: '',
-    style2: '',
-    style3: '',
-    weightG: 0,
-    lastPurchasePrice: 0,
-    minPurchasePrice: 0,
-    retailPrice: 0,
-    upc: '',
-    asin: '',
-    supplierItemNo: '',
-    description: '',
-    pic: '',
-    productType,
-    status: 'active',
-  }
-  skuVisible.value = true
-}
-
-function openEditSku(sku: any) {
-  skuForm.value = { ...sku, parentId: sku.parentId }
-  skuVisible.value = true
-}
-
-async function saveSku() {
-  try {
-    if (skuForm.value.id) {
-      await api.updateSku(skuForm.value.id, skuForm.value)
-    } else {
-      await api.createSku(skuForm.value)
-    }
-    ElMessage.success('已保存')
-    skuVisible.value = false
-    await load()
-  } catch (e) {
-    ElMessage.error((e as Error).message || '保存失败')
-  }
 }
 
 async function removeSku(sku: any) {
@@ -349,7 +273,7 @@ async function removeSku(sku: any) {
             <div class="sku-wrap">
               <div class="sku-hdr">
                 <span>多款式详情（库存SKU）</span>
-                <el-button size="small" type="primary" link @click="openCreateSku(row, 'normal')">新增库存SKU</el-button>
+                <el-button size="small" type="primary" link @click="openEditProduct(row)">编辑多款式</el-button>
               </div>
               <el-table :data="row.skus || []" border size="small">
                 <el-table-column prop="skuCode" label="库存SKU" width="130" />
@@ -372,7 +296,7 @@ async function removeSku(sku: any) {
                 <el-table-column prop="description" label="备注" min-width="100" show-overflow-tooltip />
                 <el-table-column label="操作" width="140" fixed="right">
                   <template #default="{ row: sku }">
-                    <el-button link type="primary" @click="openEditSku(sku)">编辑</el-button>
+                    <el-button link type="primary" @click="openEditProduct(row)">编辑</el-button>
                     <el-button link type="danger" @click="removeSku(sku)">删除</el-button>
                   </template>
                 </el-table-column>
@@ -439,7 +363,7 @@ async function removeSku(sku: any) {
         </el-table-column>
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEditSku(row)">编辑</el-button>
+            <el-button link type="primary" @click="openEditByParentId(row.parentId)">编辑</el-button>
             <el-button link type="danger" @click="removeSku(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -457,114 +381,16 @@ async function removeSku(sku: any) {
       />
     </section>
 
-    <el-dialog v-model="productVisible" :title="productForm.id ? '编辑商品' : '新增商品'" width="640px" destroy-on-close>
-      <el-form :model="productForm" label-width="120px">
-        <el-form-item label="父SKU/主SKU" required>
-          <el-input v-model="productForm.parentSku" :disabled="!!productForm.id" />
-        </el-form-item>
-        <el-form-item label="商品名称" required>
-          <el-input v-model="productForm.name" />
-        </el-form-item>
-        <el-form-item label="商品类别">
-          <el-select v-model="productForm.categoryId" clearable filterable style="width: 100%">
-            <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="外包装规格">
-          <el-select v-model="productForm.packSpecId" clearable filterable style="width: 100%">
-            <el-option v-for="p in packSpecs" :key="p.id" :label="p.name" :value="p.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="默认发货仓库">
-          <el-select v-model="productForm.defaultWarehouseId" clearable filterable style="width: 100%">
-            <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="开发日期">
-          <el-date-picker v-model="productForm.developedAt" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="评分系数">
-          <el-input-number v-model="productForm.scoreFactor" :min="0" :step="0.1" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="图片URL">
-          <el-input v-model="productForm.pic" placeholder="可选" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="productForm.status" style="width: 100%">
-            <el-option :value="1" label="启用" />
-            <el-option :value="0" label="停用" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="productForm.remark" type="textarea" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="productVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveProduct">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="skuVisible" :title="skuForm.id ? '编辑库存SKU' : '新增库存SKU'" width="720px" destroy-on-close>
-      <el-form :model="skuForm" label-width="120px">
-        <el-form-item label="库存SKU" required>
-          <el-input v-model="skuForm.skuCode" :disabled="!!skuForm.id" />
-        </el-form-item>
-        <el-form-item label="配货名称">
-          <el-input v-model="skuForm.pickName" />
-        </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="8"><el-form-item label="款式1"><el-input v-model="skuForm.style1" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="款式2"><el-input v-model="skuForm.style2" /></el-form-item></el-col>
-          <el-col :span="8"><el-form-item label="款式3"><el-input v-model="skuForm.style3" /></el-form-item></el-col>
-        </el-row>
-        <el-form-item label="重量(g)">
-          <el-input-number v-model="skuForm.weightG" :min="0" style="width: 100%" />
-        </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="8">
-            <el-form-item label="上次采购价">
-              <el-input-number v-model="skuForm.lastPurchasePrice" :min="0" :precision="2" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="最低采购价">
-              <el-input-number v-model="skuForm.minPurchasePrice" :min="0" :precision="2" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="零售价">
-              <el-input-number v-model="skuForm.retailPrice" :min="0" :precision="2" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="UPC码"><el-input v-model="skuForm.upc" /></el-form-item>
-        <el-form-item label="ASIN码"><el-input v-model="skuForm.asin" /></el-form-item>
-        <el-form-item label="供应商货号"><el-input v-model="skuForm.supplierItemNo" /></el-form-item>
-        <el-form-item label="图片URL"><el-input v-model="skuForm.pic" /></el-form-item>
-        <el-form-item label="产品类型">
-          <el-select v-model="skuForm.productType" style="width: 100%">
-            <el-option label="普通" value="normal" />
-            <el-option label="组合品" value="combo" />
-            <el-option label="组装品" value="assembly" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="商品状态">
-          <el-select v-model="skuForm.status" style="width: 100%">
-            <el-option label="在售" value="active" />
-            <el-option label="停用" value="inactive" />
-            <el-option label="清仓" value="clearance" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="skuForm.description" type="textarea" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="skuVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveSku">保存</el-button>
-      </template>
-    </el-dialog>
+    <ProductFormDialog
+      v-model="formVisible"
+      :product-id="editingProductId"
+      :default-product-type="defaultSkuType"
+      :categories="categories"
+      :warehouses="warehouses"
+      :pack-specs="packSpecs"
+      :preset-category-id="categoryId"
+      @saved="load"
+    />
   </div>
 </template>
 
