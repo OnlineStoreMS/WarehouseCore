@@ -407,7 +407,7 @@ func (h *Handlers) DeleteSku(c *gin.Context) {
 
 func (h *Handlers) ListBoms(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.master(c).ListBoms(page, pageSize)
+	list, total, err := h.master(c).ListBoms(page, pageSize, c.Query("bomType"))
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return

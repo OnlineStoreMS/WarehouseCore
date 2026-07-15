@@ -854,8 +854,11 @@ func (s *MasterService) UnbindPackSpecSku(id uint64) error {
 
 // ── BOM ──
 
-func (s *MasterService) ListBoms(page, pageSize int) ([]model.InvBomHeader, int64, error) {
+func (s *MasterService) ListBoms(page, pageSize int, bomType string) ([]model.InvBomHeader, int64, error) {
 	q := s.db().Model(&model.InvBomHeader{})
+	if bomType != "" {
+		q = q.Where("bom_type = ?", bomType)
+	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err

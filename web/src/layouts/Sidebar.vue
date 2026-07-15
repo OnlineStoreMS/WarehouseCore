@@ -3,7 +3,7 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   HomeFilled, Goods, Box, OfficeBuilding, DataBoard,
-  Document, Switch, Download, Upload, Printer, Link,
+  Document, Switch, Download, Upload, Printer, Link, Picture,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -12,6 +12,8 @@ const collapsed = defineModel<boolean>('collapsed', { default: false })
 
 const activeMenu = computed(() => route.path)
 const logoText = computed(() => (collapsed.value ? 'WC' : '仓储中心'))
+
+const productOpeneds = ['goods', 'goods-mgmt', 'goods-detail', 'goods-barcode', 'goods-image', 'goods-other']
 
 function navigate(path: string) {
   router.push(path)
@@ -26,7 +28,7 @@ watch(() => route.path, () => {})
     <el-menu
       :default-active="activeMenu"
       :collapse="collapsed"
-      :default-openeds="['product', 'stock', 'wh', 'stk', 'xfer', 'io', 'integ']"
+      :default-openeds="[...productOpeneds, 'stock', 'wh', 'stk', 'xfer', 'io', 'integ']"
       background-color="#001529"
       text-color="#ffffffa6"
       active-text-color="#fff"
@@ -35,15 +37,45 @@ watch(() => route.path, () => {})
         <el-icon><HomeFilled /></el-icon><span>工作台</span>
       </el-menu-item>
 
-      <el-sub-menu index="product">
-        <template #title><el-icon><Goods /></el-icon><span>商品管理</span></template>
-        <el-menu-item index="/products" @click="navigate('/products')">商品信息</el-menu-item>
-        <el-menu-item index="/categories" @click="navigate('/categories')">商品类别</el-menu-item>
-        <el-menu-item index="/pack-specs" @click="navigate('/pack-specs')">包装规格</el-menu-item>
-        <el-menu-item index="/boms" @click="navigate('/boms')">组合/组装品</el-menu-item>
-        <el-menu-item index="/barcode" @click="navigate('/barcode')">
-          <el-icon><Printer /></el-icon><span>条码打印</span>
-        </el-menu-item>
+      <!-- 对齐普源「商品」板块 -->
+      <el-sub-menu index="goods">
+        <template #title><el-icon><Goods /></el-icon><span>商品</span></template>
+
+        <el-sub-menu index="goods-mgmt">
+          <template #title><span>商品管理</span></template>
+          <el-menu-item index="/products" @click="navigate('/products')">商品信息</el-menu-item>
+          <el-menu-item index="/categories" @click="navigate('/categories')">商品类别</el-menu-item>
+          <el-menu-item index="/pack-specs" @click="navigate('/pack-specs')">包装规格</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="goods-detail">
+          <template #title><span>商品明细</span></template>
+          <el-menu-item index="/details/assembly" @click="navigate('/details/assembly')">组装品明细</el-menu-item>
+          <el-menu-item index="/details/combo" @click="navigate('/details/combo')">组合品明细</el-menu-item>
+          <el-menu-item index="/details/store-skus" @click="navigate('/details/store-skus')">店铺SKU明细</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="goods-barcode">
+          <template #title>
+            <el-icon><Printer /></el-icon><span>条码打印</span>
+          </template>
+          <el-menu-item index="/barcode/skus" @click="navigate('/barcode/skus')">库存SKU</el-menu-item>
+          <el-menu-item index="/barcode/overseas" @click="navigate('/barcode/overseas')">海外仓SKU</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="goods-image">
+          <template #title>
+            <el-icon><Picture /></el-icon><span>图片</span>
+          </template>
+          <el-menu-item index="/images/space" @click="navigate('/images/space')">图片空间</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="goods-other">
+          <template #title><span>其它</span></template>
+          <el-menu-item index="/tools/sku-cost" @click="navigate('/tools/sku-cost')">商品费用设置</el-menu-item>
+          <el-menu-item index="/tools/weight-check" @click="navigate('/tools/weight-check')">商品重量检测</el-menu-item>
+          <el-menu-item index="/tools/profit-calc" @click="navigate('/tools/profit-calc')">商品利润试算</el-menu-item>
+        </el-sub-menu>
       </el-sub-menu>
 
       <el-sub-menu index="stock">
@@ -109,4 +141,11 @@ watch(() => route.path, () => {})
   border-bottom: 1px solid #ffffff14;
 }
 .sidebar :deep(.el-menu) { border-right: none; }
+.sidebar :deep(.el-sub-menu .el-menu-item) {
+  min-width: auto;
+  padding-left: 48px !important;
+}
+.sidebar :deep(.el-sub-menu .el-sub-menu .el-menu-item) {
+  padding-left: 64px !important;
+}
 </style>

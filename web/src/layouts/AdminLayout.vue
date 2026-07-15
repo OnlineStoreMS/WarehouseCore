@@ -31,7 +31,13 @@ function logout() {
 
 const breadcrumbs = computed(() => {
   const title = (route.meta.title as string) || '工作台'
-  return ['仓储中心', title]
+  const section = route.meta.section as string | undefined
+  const group = route.meta.group as string | undefined
+  const items = ['仓储中心']
+  if (section) items.push(section)
+  if (group) items.push(group)
+  if (title && title !== section && title !== group) items.push(title)
+  return items
 })
 </script>
 

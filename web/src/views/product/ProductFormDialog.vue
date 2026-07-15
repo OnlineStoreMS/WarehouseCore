@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
 import ImageField from '../../components/ImageField.vue'
+import SupplierPickerDialog from '../../components/SupplierPickerDialog.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -30,8 +31,11 @@ const activeTab = ref('base')
 const form = ref<any>({})
 const skus = ref<any[]>([])
 const suppliers = ref<any[]>([])
-const vmsSuppliers = ref<any[]>([])
-const vmsLoading = ref(false)
+const supplierPickerVisible = ref(false)
+
+const selectedSupplierIds = computed(() =>
+  suppliers.value.map((s) => Number(s.supplierId)).filter((id) => id > 0),
+)
 
 const goodsKindOptions = [
   { label: '普通商品', value: 'normal' },
@@ -153,19 +157,6 @@ function resetCreate() {
   activeTab.value = 'base'
 }
 
-async function loadVmsSuppliers() {
-  if (vmsSuppliers.value.length || vmsLoading.value) return
-  vmsLoading.value = true
-  try {
-    const data = await api.listSuppliers({ page: 1, pageSize: 200 })
-    vmsSuppliers.value = data.list || []
-  } catch {
-    vmsSuppliers.value = []
-  } finally {
-    vmsLoading.value = false
-  }
-}
-
 async function loadEdit(id: number) {
   const detail = await api.getProduct(id)
   form.value = {
@@ -186,7 +177,6 @@ async function loadEdit(id: number) {
     isDefault: s.isDefault ? 1 : 0,
   }))
   activeTab.value = 'base'
-  await loadVmsSuppliers()
 }
 
 watch(
@@ -195,20 +185,13 @@ watch(
     if (!open) return
     try {
       if (props.productId) await loadEdit(props.productId)
-      else {
-        resetCreate()
-        loadVmsSuppliers()
-      }
+      else resetCreate()
     } catch (e) {
       ElMessage.error((e as Error).message || '加载失败')
       visible.value = false
     }
   },
 )
-
-watch(activeTab, (tab) => {
-  if (tab === 'purchase') loadVmsSuppliers()
-})
 
 function addSkuRow() {
   skus.value.push(emptySku(form.value.defaultProductType || 'normal'))
@@ -222,8 +205,21 @@ function removeSkuRow(idx: number) {
   skus.value.splice(idx, 1)
 }
 
-function addSupplierRow() {
+function openSupplierPicker() {
+  supplierPickerVisible.value = true
+}
+
+function onSupplierSelected(s: any) {
+  if (suppliers.value.some((x) => x.supplierId === s.id)) {
+    ElMessage.warning('该供应商已添加')
+    return
+  }
   const row = emptySupplier()
+  row.supplierId = s.id
+  row.supplierCode = s.code || ''
+  row.supplierName = s.name || ''
+  row.contactName = s.contactName || ''
+  row.phone = s.phone || ''
   if (!suppliers.value.length) row.isDefault = 1
   suppliers.value.push(row)
 }
@@ -232,23 +228,6 @@ function removeSupplierRow(idx: number) {
   const wasDefault = suppliers.value[idx]?.isDefault
   suppliers.value.splice(idx, 1)
   if (wasDefault && suppliers.value.length) suppliers.value[0].isDefault = 1
-}
-
-function onSupplierPick(row: any, supplierId?: number | string | null) {
-  const id = Number(supplierId)
-  if (!supplierId || !id) {
-    row.supplierId = undefined
-    row.supplierCode = ''
-    row.supplierName = ''
-    return
-  }
-  const s = vmsSuppliers.value.find((x) => x.id === id)
-  if (!s) return
-  row.supplierId = s.id
-  row.supplierCode = s.code || ''
-  row.supplierName = s.name || ''
-  if (!row.contactName) row.contactName = s.contactName || ''
-  if (!row.phone) row.phone = s.phone || ''
 }
 
 function setDefaultSupplier(idx: number) {
@@ -591,33 +570,15 @@ async function save() {
         </el-form>
         <div class="section-title sku-title">
           <span>多供应商信息</span>
-          <el-button type="primary" link :icon="Plus" @click="addSupplierRow">添加</el-button>
+          <el-button type="primary" link :icon="Plus" @click="openSupplierPicker">添加</el-button>
         </div>
-        <el-table :data="suppliers" border size="small" empty-text="点击「添加」从 VMS 选择供应商">
+        <el-table :data="suppliers" border size="small" empty-text="点击「添加」搜索并选择供应商">
           <el-table-column label="供应商名称" min-width="200">
             <template #default="{ row }">
-              <el-select
-                v-model="row.supplierId"
-                filterable
-                clearable
-                :loading="vmsLoading"
-                placeholder="从 VMS 选择供应商"
-                style="width: 100%"
-                @change="onSupplierPick(row, $event)"
-              >
-                <el-option
-                  v-for="s in vmsSuppliers"
-                  :key="s.id"
-                  :label="`${s.name}${s.code ? ' (' + s.code + ')' : ''}`"
-                  :value="s.id"
-                  :disabled="suppliers.some((x) => x !== row && x.supplierId === s.id)"
-                />
-              </el-select>
+              <div>{{ row.supplierName || '—' }}</div>
+              <div v-if="row.supplierCode" class="supplier-code">{{ row.supplierCode }}</div>
               <div v-if="row.isDefault" class="default-supplier-tag">默认供应商</div>
             </template>
-          </el-table-column>
-          <el-table-column label="采购网址" min-width="180">
-            <template #default="{ row }"><el-input v-model="row.purchaseUrl" size="small" placeholder="http(s)://" /></template>
           </el-table-column>
           <el-table-column label="供应商报价(￥)" width="130">
             <template #default="{ row }">
@@ -747,6 +708,12 @@ async function save() {
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </el-dialog>
+
+  <SupplierPickerDialog
+    v-model="supplierPickerVisible"
+    :exclude-ids="selectedSupplierIds"
+    @select="onSupplierSelected"
+  />
 </template>
 
 <style scoped>
@@ -780,5 +747,10 @@ async function save() {
   padding: 0 5px;
   height: 16px;
   line-height: 15px;
+}
+.supplier-code {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #909399;
 }
 </style>
