@@ -31,7 +31,30 @@ const activeTab = ref('base')
 const form = ref<any>({})
 const skus = ref<any[]>([])
 const suppliers = ref<any[]>([])
+const descriptions = ref<any[]>([])
 const supplierPickerVisible = ref(false)
+
+/** 对齐普源多语言商品描述常用语种 */
+const languageOptions = [
+  { code: 'zh-CN', name: '中文' },
+  { code: 'en', name: '英语' },
+  { code: 'de', name: '德语' },
+  { code: 'fr', name: '法语' },
+  { code: 'es', name: '西班牙语' },
+  { code: 'it', name: '意大利语' },
+  { code: 'pt', name: '葡萄牙语' },
+  { code: 'ru', name: '俄语' },
+  { code: 'ja', name: '日语' },
+  { code: 'ko', name: '韩语' },
+  { code: 'ar', name: '阿拉伯语' },
+  { code: 'th', name: '泰语' },
+  { code: 'vi', name: '越南语' },
+  { code: 'id', name: '印尼语' },
+  { code: 'ms', name: '马来语' },
+  { code: 'pl', name: '波兰语' },
+  { code: 'nl', name: '荷兰语' },
+  { code: 'tr', name: '土耳其语' },
+]
 
 const selectedSupplierIds = computed(() =>
   suppliers.value.map((s) => Number(s.supplierId)).filter((id) => id > 0),
@@ -87,6 +110,17 @@ function emptySupplier() {
     contactName: '',
     phone: '',
     isDefault: 0,
+    sort: 0,
+  }
+}
+
+function emptyDescription() {
+  return {
+    id: undefined,
+    languageCode: '',
+    languageName: '',
+    title: '',
+    description: '',
     sort: 0,
   }
 }
@@ -154,6 +188,7 @@ function resetCreate() {
   }
   skus.value = [emptySku(pt)]
   suppliers.value = []
+  descriptions.value = []
   activeTab.value = 'base'
 }
 
@@ -175,6 +210,10 @@ async function loadEdit(id: number) {
     ...emptySupplier(),
     ...s,
     isDefault: s.isDefault ? 1 : 0,
+  }))
+  descriptions.value = (detail.descriptions || []).map((d: any) => ({
+    ...emptyDescription(),
+    ...d,
   }))
   activeTab.value = 'base'
 }
@@ -236,6 +275,20 @@ function setDefaultSupplier(idx: number) {
   })
 }
 
+function addDescriptionRow() {
+  descriptions.value.push(emptyDescription())
+}
+
+function removeDescriptionRow(idx: number) {
+  descriptions.value.splice(idx, 1)
+}
+
+function onLanguageChange(row: any, code: string) {
+  const opt = languageOptions.find((o) => o.code === code)
+  row.languageCode = code || ''
+  row.languageName = opt?.name || ''
+}
+
 function fillSkuFromParent() {
   if (!form.value.parentSku) return
   const first = skus.value[0]
@@ -287,6 +340,25 @@ async function save() {
     supplierIds.add(s.supplierId)
   }
 
+  const selectedDescriptions = descriptions.value.filter(
+    (d) => String(d.languageCode || '').trim() || String(d.title || '').trim() || String(d.description || '').trim(),
+  )
+  const langCodes = new Set<string>()
+  for (const d of selectedDescriptions) {
+    const code = String(d.languageCode || '').trim()
+    if (!code) {
+      ElMessage.warning('多语言描述请选择语言')
+      activeTab.value = 'sale'
+      return
+    }
+    if (langCodes.has(code)) {
+      ElMessage.warning(`语言重复：${d.languageName || code}`)
+      activeTab.value = 'sale'
+      return
+    }
+    langCodes.add(code)
+  }
+
   const body = {
     ...form.value,
     parentSku: form.value.parentSku.trim(),
@@ -329,6 +401,14 @@ async function save() {
       contactName: s.contactName || '',
       phone: s.phone || '',
       isDefault: s.isDefault ? 1 : 0,
+      sort: i + 1,
+    })),
+    descriptions: selectedDescriptions.map((d, i) => ({
+      id: d.id || undefined,
+      languageCode: String(d.languageCode).trim(),
+      languageName: d.languageName || '',
+      title: d.title || '',
+      description: d.description || '',
       sort: i + 1,
     })),
   }
@@ -662,41 +742,42 @@ async function save() {
             <el-col :span="8"><el-form-item label="市场参考价"><el-input-number v-model="form.marketPrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
           </el-row>
         </el-form>
-        <div class="section-title">SKU 售价与图片</div>
-        <el-table :data="skus" border size="small" class="sku-grid">
-          <el-table-column label="图片" width="72">
+        <div class="section-title sku-title">
+          <span>多语言商品描述</span>
+          <el-button type="primary" link :icon="Plus" @click="addDescriptionRow">添加</el-button>
+        </div>
+        <el-table :data="descriptions" border size="small" empty-text="点击「添加」填写多语言标题与描述">
+          <el-table-column label="语言" width="150">
             <template #default="{ row }">
-              <ImageField v-model="row.pic" tip="SKU图" subdir="skus" compact :size="48" />
-            </template>
-          </el-table-column>
-          <el-table-column prop="skuCode" label="库存SKU" width="130" />
-          <el-table-column label="商品类型" width="110">
-            <template #default="{ row }">
-              <el-select v-model="row.goodsKind" size="small" style="width: 100%">
-                <el-option v-for="o in goodsKindOptions" :key="o.value" :label="o.label" :value="o.value" />
+              <el-select
+                :model-value="row.languageCode"
+                placeholder="选择语言"
+                filterable
+                size="small"
+                style="width: 100%"
+                @change="(v) => onLanguageChange(row, v)"
+              >
+                <el-option
+                  v-for="o in languageOptions"
+                  :key="o.code"
+                  :label="o.name"
+                  :value="o.code"
+                  :disabled="descriptions.some((d) => d !== row && d.languageCode === o.code)"
+                />
               </el-select>
             </template>
           </el-table-column>
-          <el-table-column label="配货名称" min-width="120">
-            <template #default="{ row }"><el-input v-model="row.pickName" size="small" /></template>
+          <el-table-column label="标题" min-width="180">
+            <template #default="{ row }"><el-input v-model="row.title" size="small" /></template>
           </el-table-column>
-          <el-table-column label="零售价" width="110">
+          <el-table-column label="描述" min-width="280">
             <template #default="{ row }">
-              <el-input-number v-model="row.retailPrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
+              <el-input v-model="row.description" type="textarea" :rows="2" size="small" />
             </template>
           </el-table-column>
-          <el-table-column label="重量(g)" width="100">
-            <template #default="{ row }">
-              <el-input-number v-model="row.weightG" :min="0" :controls="false" size="small" style="width: 100%" />
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-select v-model="row.status" size="small" style="width: 100%">
-                <el-option label="在售" value="active" />
-                <el-option label="停用" value="inactive" />
-                <el-option label="清仓" value="clearance" />
-              </el-select>
+          <el-table-column label="操作" width="70" fixed="right">
+            <template #default="{ $index }">
+              <el-button link type="danger" size="small" :icon="Delete" @click="removeDescriptionRow($index)" />
             </template>
           </el-table-column>
         </el-table>

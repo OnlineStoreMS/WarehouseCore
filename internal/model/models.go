@@ -88,9 +88,26 @@ type InvProduct struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	Skus      []InvSku  `gorm:"foreignKey:ParentID" json:"skus,omitempty"`
 	Suppliers []InvProductSupplier `gorm:"foreignKey:ProductID" json:"suppliers,omitempty"`
+	Descriptions []InvProductDescription `gorm:"foreignKey:ProductID" json:"descriptions,omitempty"`
 }
 
 func (InvProduct) TableName() string { return "inv_products" }
+
+// InvProductDescription 多语言商品描述（对齐普源「销售信息 → 多语言商品描述」）
+type InvProductDescription struct {
+	ID           uint64 `gorm:"primaryKey" json:"id"`
+	TenantID     uint64 `gorm:"index;not null" json:"tenantId"`
+	ProductID    uint64 `gorm:"index;not null" json:"productId"`
+	LanguageCode string `gorm:"size:16;not null" json:"languageCode"` // zh-CN / en / de ...
+	LanguageName string `gorm:"size:64" json:"languageName"`
+	Title        string `gorm:"size:512" json:"title"`
+	Description  string `gorm:"type:text" json:"description"`
+	Sort         int    `gorm:"default:0" json:"sort"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+func (InvProductDescription) TableName() string { return "inv_product_descriptions" }
 
 // InvProductSupplier 商品多供应商（对齐普源，挂在父商品而非库存SKU；供应商主数据来自 SupplyCore VMS）
 type InvProductSupplier struct {

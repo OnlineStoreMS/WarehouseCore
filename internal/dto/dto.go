@@ -69,12 +69,23 @@ type InvProductDTO struct {
 	MarketPrice  float64 `json:"marketPrice"`
 }
 
-// ProductWithSkusDTO 对齐普源「新增普通商品」：一次提交父SKU + 库存SKU明细 + 多供应商
+// ProductWithSkusDTO 对齐普源「新增普通商品」：一次提交父SKU + 库存SKU明细 + 多供应商 + 多语言描述
 type ProductWithSkusDTO struct {
 	InvProductDTO
-	DefaultProductType string                   `json:"defaultProductType"` // normal/combo/assembly
-	Skus               []ProductSkuItemDTO      `json:"skus" binding:"required,min=1"`
-	Suppliers          []ProductSupplierItemDTO `json:"suppliers"`
+	DefaultProductType string                      `json:"defaultProductType"` // normal/combo/assembly
+	Skus               []ProductSkuItemDTO         `json:"skus" binding:"required,min=1"`
+	Suppliers          []ProductSupplierItemDTO    `json:"suppliers"`
+	Descriptions       []ProductDescriptionItemDTO `json:"descriptions"`
+}
+
+// ProductDescriptionItemDTO 多语言商品描述行（空行由服务端过滤，languageCode 非必填以便前端可提交空数组）
+type ProductDescriptionItemDTO struct {
+	ID           uint64 `json:"id"`
+	LanguageCode string `json:"languageCode" binding:"omitempty,max=16"`
+	LanguageName string `json:"languageName" binding:"omitempty,max=64"`
+	Title        string `json:"title" binding:"omitempty,max=512"`
+	Description  string `json:"description" binding:"omitempty"`
+	Sort         int    `json:"sort"`
 }
 
 // ProductSupplierItemDTO 商品多供应商行（供应商选自 SupplyCore VMS）
