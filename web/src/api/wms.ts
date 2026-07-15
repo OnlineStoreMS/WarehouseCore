@@ -19,6 +19,16 @@ export const api = {
   updateCategory: (id: number, body: unknown) => client.put(`/categories/${id}`, body),
   deleteCategory: (id: number) => client.delete(`/categories/${id}`),
 
+  // pack specs
+  listPackSpecs: (params?: Record<string, unknown>) => page<any>('/pack-specs', params),
+  createPackSpec: (body: unknown) => client.post('/pack-specs', body),
+  updatePackSpec: (id: number, body: unknown) => client.put(`/pack-specs/${id}`, body),
+  deletePackSpec: (id: number) => client.delete(`/pack-specs/${id}`),
+  listPackSpecSkus: (id: number) => client.get(`/pack-specs/${id}/skus`).then((r) => r.data.data as any[]),
+  bindPackSpecSku: (id: number, body: unknown) => client.post(`/pack-specs/${id}/skus`, body),
+  updatePackSpecSku: (id: number, body: unknown) => client.put(`/pack-spec-skus/${id}`, body),
+  unbindPackSpecSku: (id: number) => client.delete(`/pack-spec-skus/${id}`),
+
   // products
   listProducts: (params?: Record<string, unknown>) => page<any>('/products', params),
   getProduct: (id: number) => client.get(`/products/${id}`).then((r) => r.data.data),

@@ -36,8 +36,10 @@ watch(() => route.path, () => {})
       </el-menu-item>
 
       <el-sub-menu index="product">
-        <template #title><el-icon><Goods /></el-icon><span>基础商品</span></template>
-        <el-menu-item index="/products" @click="navigate('/products')">商品资料</el-menu-item>
+        <template #title><el-icon><Goods /></el-icon><span>商品管理</span></template>
+        <el-menu-item index="/products" @click="navigate('/products')">商品信息</el-menu-item>
+        <el-menu-item index="/categories" @click="navigate('/categories')">商品类别</el-menu-item>
+        <el-menu-item index="/pack-specs" @click="navigate('/pack-specs')">包装规格</el-menu-item>
         <el-menu-item index="/boms" @click="navigate('/boms')">组合/组装品</el-menu-item>
         <el-menu-item index="/barcode" @click="navigate('/barcode')">
           <el-icon><Printer /></el-icon><span>条码打印</span>

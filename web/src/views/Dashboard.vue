@@ -10,8 +10,8 @@ import { Box, Goods, OfficeBuilding, Switch } from '@element-plus/icons-vue'
           <div class="stat-card">
             <el-icon :size="32" color="#409eff"><Goods /></el-icon>
             <div>
-              <div class="stat-title">仓储商品</div>
-              <div class="stat-desc">父商品与 SKU、组合/组装 BOM、条码打印</div>
+              <div class="stat-title">商品管理</div>
+              <div class="stat-desc">商品信息、类别、包装规格与组合/组装</div>
             </div>
           </div>
         </el-card>

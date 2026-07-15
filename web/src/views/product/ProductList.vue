@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
 
 type ViewTab = 'all' | 'sku' | 'combo' | 'assembly'
 
+const router = useRouter()
 const loading = ref(false)
 const list = ref<any[]>([])
 const skuList = ref<any[]>([])
@@ -25,8 +27,7 @@ const defaultSkuType = ref('normal')
 
 const categories = ref<any[]>([])
 const warehouses = ref<any[]>([])
-const catDialog = ref(false)
-const catForm = ref<any>({})
+const packSpecs = ref<any[]>([])
 
 const categoryMap = computed(() => {
   const m = new Map<number, string>()
@@ -36,6 +37,11 @@ const categoryMap = computed(() => {
 const warehouseMap = computed(() => {
   const m = new Map<number, string>()
   for (const w of warehouses.value) m.set(w.id, w.name)
+  return m
+})
+const packSpecMap = computed(() => {
+  const m = new Map<number, string>()
+  for (const p of packSpecs.value) m.set(p.id, p.name)
   return m
 })
 
@@ -82,6 +88,13 @@ async function loadWarehouses() {
   } catch { /* ignore */ }
 }
 
+async function loadPackSpecs() {
+  try {
+    const res = await api.listPackSpecs({ page: 1, pageSize: 500 })
+    packSpecs.value = res.list || []
+  } catch { /* ignore */ }
+}
+
 async function load() {
   loading.value = true
   try {
@@ -113,7 +126,7 @@ async function load() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadCategories(), loadWarehouses()])
+  await Promise.all([loadCategories(), loadWarehouses(), loadPackSpecs()])
   await load()
 })
 
@@ -157,6 +170,11 @@ function whName(id?: number) {
   return warehouseMap.value.get(id) || String(id)
 }
 
+function packName(id?: number) {
+  if (!id) return '-'
+  return packSpecMap.value.get(id) || String(id)
+}
+
 function formatDate(v?: string) {
   if (!v) return '-'
   return String(v).slice(0, 10)
@@ -177,6 +195,7 @@ function openCreateProduct(skuType = 'normal') {
     parentSku: '',
     name: '',
     categoryId: categoryId.value,
+    packSpecId: undefined,
     scoreFactor: 1,
     remark: '',
     status: 1,
@@ -274,38 +293,6 @@ async function removeSku(sku: any) {
   ElMessage.success('已删除')
   await load()
 }
-
-function openCreateCategory() {
-  catForm.value = { code: '', name: '', parentId: 0, sort: 0, status: 1 }
-  catDialog.value = true
-}
-
-function openEditCategory(row: any) {
-  catForm.value = { ...row }
-  catDialog.value = true
-}
-
-async function saveCategory() {
-  try {
-    if (catForm.value.id) {
-      await api.updateCategory(catForm.value.id, catForm.value)
-    } else {
-      await api.createCategory(catForm.value)
-    }
-    ElMessage.success('类别已保存')
-    catDialog.value = false
-    await loadCategories()
-  } catch (e) {
-    ElMessage.error((e as Error).message || '保存失败')
-  }
-}
-
-async function removeCategory(row: any) {
-  await ElMessageBox.confirm(`确认删除类别「${row.name}」？`, '提示', { type: 'warning' })
-  await api.deleteCategory(row.id)
-  ElMessage.success('已删除')
-  await loadCategories()
-}
 </script>
 
 <template>
@@ -313,7 +300,7 @@ async function removeCategory(row: any) {
     <aside class="cat-pane">
       <div class="cat-hdr">
         <span>商品类别</span>
-        <el-button link type="primary" @click="openCreateCategory">管理</el-button>
+        <el-button link type="primary" @click="router.push('/categories')">管理</el-button>
       </div>
       <el-tree
         :data="treeData"
@@ -323,15 +310,6 @@ async function removeCategory(row: any) {
         :props="{ label: 'label', children: 'children' }"
         @node-click="onTreeClick"
       />
-      <div class="cat-list" v-if="categories.length">
-        <div v-for="c in categories" :key="c.id" class="cat-row">
-          <span>{{ c.code }} · {{ c.name }}</span>
-          <span>
-            <el-button link type="primary" size="small" @click="openEditCategory(c)">改</el-button>
-            <el-button link type="danger" size="small" @click="removeCategory(c)">删</el-button>
-          </span>
-        </div>
-      </div>
     </aside>
 
     <section class="main-pane">
@@ -422,6 +400,9 @@ async function removeCategory(row: any) {
         <el-table-column label="默认发货仓库" width="130">
           <template #default="{ row }">{{ whName(row.defaultWarehouseId) }}</template>
         </el-table-column>
+        <el-table-column label="外包装规格" width="120" show-overflow-tooltip>
+          <template #default="{ row }">{{ packName(row.packSpecId) }}</template>
+        </el-table-column>
         <el-table-column label="开发日期" width="110">
           <template #default="{ row }">{{ formatDate(row.developedAt) }}</template>
         </el-table-column>
@@ -487,6 +468,11 @@ async function removeCategory(row: any) {
         <el-form-item label="商品类别">
           <el-select v-model="productForm.categoryId" clearable filterable style="width: 100%">
             <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="外包装规格">
+          <el-select v-model="productForm.packSpecId" clearable filterable style="width: 100%">
+            <el-option v-for="p in packSpecs" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="默认发货仓库">
@@ -579,24 +565,6 @@ async function removeCategory(row: any) {
         <el-button type="primary" @click="saveSku">保存</el-button>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="catDialog" :title="catForm.id ? '编辑类别' : '新增类别'" width="480px" destroy-on-close>
-      <el-form :model="catForm" label-width="80px">
-        <el-form-item label="编码" required><el-input v-model="catForm.code" /></el-form-item>
-        <el-form-item label="名称" required><el-input v-model="catForm.name" /></el-form-item>
-        <el-form-item label="上级">
-          <el-select v-model="catForm.parentId" clearable style="width: 100%">
-            <el-option :value="0" label="无（顶级）" />
-            <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="catForm.sort" :min="0" style="width: 100%" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="catDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveCategory">保存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -622,19 +590,6 @@ async function removeCategory(row: any) {
   align-items: center;
   font-weight: 600;
   margin-bottom: 8px;
-}
-.cat-list {
-  margin-top: 12px;
-  border-top: 1px dashed var(--el-border-color);
-  padding-top: 8px;
-  font-size: 12px;
-  color: #666;
-}
-.cat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2px 0;
 }
 .main-pane {
   flex: 1;

@@ -5,6 +5,8 @@ import "time"
 type InvCategoryDTO struct {
 	Code     string `json:"code" binding:"required"`
 	Name     string `json:"name" binding:"required"`
+	AliasCn  string `json:"aliasCn"`
+	AliasEn  string `json:"aliasEn"`
 	ParentID uint64 `json:"parentId"`
 	Sort     int    `json:"sort"`
 	Status   int8   `json:"status"`
@@ -14,6 +16,7 @@ type InvProductDTO struct {
 	ParentSku          string  `json:"parentSku" binding:"required"`
 	Name               string  `json:"name" binding:"required"`
 	CategoryID         uint64  `json:"categoryId"`
+	PackSpecID         uint64  `json:"packSpecId"`
 	DevelopedAt        *string `json:"developedAt"`
 	DefaultWarehouseID uint64  `json:"defaultWarehouseId"`
 	ScoreFactor        float64 `json:"scoreFactor"`
@@ -22,6 +25,34 @@ type InvProductDTO struct {
 	AlbumPics          string  `json:"albumPics"`
 	Status             int8    `json:"status"`
 	PimSpuID           *uint64 `json:"pimSpuId"`
+}
+
+type InvPackSpecDTO struct {
+	Name    string  `json:"name" binding:"required"`
+	Cost    float64 `json:"cost"`
+	WeightG float64 `json:"weightG"`
+	Remark  string  `json:"remark"`
+	Status  int8    `json:"status"`
+}
+
+type InvPackSpecSkuDTO struct {
+	PackSpecID uint64  `json:"packSpecId" binding:"required"`
+	InvSkuID   uint64  `json:"invSkuId" binding:"required"`
+	QtyMin     float64 `json:"qtyMin"`
+	QtyMax     float64 `json:"qtyMax"`
+	Remark     string  `json:"remark"`
+}
+
+type PackSpecSkuRow struct {
+	ID         uint64  `json:"id"`
+	PackSpecID uint64  `json:"packSpecId"`
+	InvSkuID   uint64  `json:"invSkuId"`
+	SkuCode    string  `json:"skuCode"`
+	PickName   string  `json:"pickName"`
+	QtyMin     float64 `json:"qtyMin"`
+	QtyMax     float64 `json:"qtyMax"`
+	Remark     string  `json:"remark"`
+	NumRange   string  `json:"numRange"`
 }
 
 type InvSkuDTO struct {

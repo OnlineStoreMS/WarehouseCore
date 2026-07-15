@@ -8,7 +8,9 @@ type InvCategory struct {
 	ID        uint64    `gorm:"primaryKey" json:"id"`
 	TenantID  uint64    `gorm:"index;not null" json:"tenantId"`
 	Code      string    `gorm:"size:64;not null" json:"code"`
-	Name      string    `gorm:"size:128;not null" json:"name"`
+	Name      string    `gorm:"size:128;not null" json:"name"` // 商品类别
+	AliasCn   string    `gorm:"size:128" json:"aliasCn"`       // 中文品名
+	AliasEn   string    `gorm:"size:128" json:"aliasEn"`       // 英文品名
 	ParentID  uint64    `gorm:"default:0" json:"parentId"`
 	Sort      int       `gorm:"default:0" json:"sort"`
 	Status    int8      `gorm:"default:1" json:"status"`
@@ -26,6 +28,7 @@ type InvProduct struct {
 	ParentSku           string     `gorm:"size:64;not null" json:"parentSku"`
 	Name                string     `gorm:"size:256;not null" json:"name"`
 	CategoryID          uint64     `gorm:"index;default:0" json:"categoryId"`
+	PackSpecID          uint64     `gorm:"index;default:0" json:"packSpecId"` // 外包装规格
 	DevelopedAt         *time.Time `json:"developedAt"`
 	DefaultWarehouseID  uint64     `gorm:"default:0" json:"defaultWarehouseId"`
 	ScoreFactor         float64    `gorm:"type:numeric(10,4);default:1" json:"scoreFactor"`
@@ -75,6 +78,35 @@ type InvSku struct {
 }
 
 func (InvSku) TableName() string { return "inv_skus" }
+
+// ── 包装规格（对齐普源 goodspack）──
+
+type InvPackSpec struct {
+	ID        uint64    `gorm:"primaryKey" json:"id"`
+	TenantID  uint64    `gorm:"index;not null" json:"tenantId"`
+	Name      string    `gorm:"size:128;not null" json:"name"` // 包装规格名称
+	Cost      float64   `gorm:"type:numeric(14,4);default:0" json:"cost"` // 成本价
+	WeightG   float64   `gorm:"type:numeric(12,3);default:0" json:"weightG"`
+	Remark    string    `gorm:"size:512" json:"remark"`
+	Status    int8      `gorm:"default:1" json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func (InvPackSpec) TableName() string { return "inv_pack_specs" }
+
+// InvPackSpecSku 包装规格绑定库存SKU（数量范围）
+type InvPackSpecSku struct {
+	ID         uint64  `gorm:"primaryKey" json:"id"`
+	TenantID   uint64  `gorm:"index;not null" json:"tenantId"`
+	PackSpecID uint64  `gorm:"index;not null" json:"packSpecId"`
+	InvSkuID   uint64  `gorm:"index;not null" json:"invSkuId"`
+	QtyMin     float64 `gorm:"type:numeric(14,4);default:0" json:"qtyMin"`
+	QtyMax     float64 `gorm:"type:numeric(14,4);default:0" json:"qtyMax"` // 0=不限
+	Remark     string  `gorm:"size:256" json:"remark"`
+}
+
+func (InvPackSpecSku) TableName() string { return "inv_pack_spec_skus" }
 
 // ── BOM ──
 

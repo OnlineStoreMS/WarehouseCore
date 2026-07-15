@@ -9,6 +9,16 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.PUT("/categories/:id", h.UpdateCategory)
 	g.DELETE("/categories/:id", h.DeleteCategory)
 
+	// Pack specs
+	g.GET("/pack-specs", h.ListPackSpecs)
+	g.POST("/pack-specs", h.CreatePackSpec)
+	g.PUT("/pack-specs/:id", h.UpdatePackSpec)
+	g.DELETE("/pack-specs/:id", h.DeletePackSpec)
+	g.GET("/pack-specs/:id/skus", h.ListPackSpecSkus)
+	g.POST("/pack-specs/:id/skus", h.BindPackSpecSku)
+	g.PUT("/pack-spec-skus/:id", h.UpdatePackSpecSku)
+	g.DELETE("/pack-spec-skus/:id", h.UnbindPackSpecSku)
+
 	// Products (parent SKU)
 	g.GET("/products", h.ListProducts)
 	g.POST("/products", h.CreateProduct)

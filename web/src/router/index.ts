@@ -23,7 +23,9 @@ const router = createRouter({
       redirect: '/dashboard',
       children: [
         { path: 'dashboard', name: 'Dashboard', component: () => import('../views/Dashboard.vue'), meta: { title: '工作台' } },
-        { path: 'products', name: 'Products', component: () => import('../views/product/ProductList.vue'), meta: { title: '商品资料' } },
+        { path: 'products', name: 'Products', component: () => import('../views/product/ProductList.vue'), meta: { title: '商品信息' } },
+        { path: 'categories', name: 'Categories', component: () => import('../views/product/CategoryList.vue'), meta: { title: '商品类别' } },
+        { path: 'pack-specs', name: 'PackSpecs', component: () => import('../views/product/PackSpecList.vue'), meta: { title: '包装规格' } },
         { path: 'boms', name: 'Boms', component: () => import('../views/product/BomList.vue'), meta: { title: '组合/组装品' } },
         { path: 'barcode', name: 'Barcode', component: () => import('../views/product/BarcodePrint.vue'), meta: { title: '条码打印' } },
         { path: 'warehouses', name: 'Warehouses', component: () => import('../views/warehouse/WarehouseList.vue'), meta: { title: '仓库设置' } },

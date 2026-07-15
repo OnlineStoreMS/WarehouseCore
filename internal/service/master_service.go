@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -51,6 +52,8 @@ func (s *MasterService) CreateCategory(in *dto.InvCategoryDTO) (*model.InvCatego
 		TenantID: s.tenantID,
 		Code:     strings.TrimSpace(in.Code),
 		Name:     strings.TrimSpace(in.Name),
+		AliasCn:  strings.TrimSpace(in.AliasCn),
+		AliasEn:  strings.TrimSpace(in.AliasEn),
 		ParentID: in.ParentID,
 		Sort:     in.Sort,
 		Status:   statusOrDefault(in.Status),
@@ -71,6 +74,8 @@ func (s *MasterService) UpdateCategory(id uint64, in *dto.InvCategoryDTO) (*mode
 	}
 	item.Code = strings.TrimSpace(in.Code)
 	item.Name = strings.TrimSpace(in.Name)
+	item.AliasCn = strings.TrimSpace(in.AliasCn)
+	item.AliasEn = strings.TrimSpace(in.AliasEn)
 	item.ParentID = in.ParentID
 	item.Sort = in.Sort
 	item.Status = statusOrDefault(in.Status)
@@ -136,6 +141,7 @@ func (s *MasterService) CreateProduct(in *dto.InvProductDTO) (*model.InvProduct,
 		ParentSku:          strings.TrimSpace(in.ParentSku),
 		Name:               strings.TrimSpace(in.Name),
 		CategoryID:         in.CategoryID,
+		PackSpecID:         in.PackSpecID,
 		DefaultWarehouseID: in.DefaultWarehouseID,
 		ScoreFactor:        in.ScoreFactor,
 		Remark:             in.Remark,
@@ -169,6 +175,7 @@ func (s *MasterService) UpdateProduct(id uint64, in *dto.InvProductDTO) (*model.
 	item.ParentSku = strings.TrimSpace(in.ParentSku)
 	item.Name = strings.TrimSpace(in.Name)
 	item.CategoryID = in.CategoryID
+	item.PackSpecID = in.PackSpecID
 	item.DefaultWarehouseID = in.DefaultWarehouseID
 	item.ScoreFactor = in.ScoreFactor
 	if item.ScoreFactor == 0 {
@@ -345,6 +352,166 @@ func (s *MasterService) DeleteSku(id uint64) error {
 		return ErrHasMovements
 	}
 	res := s.db().Delete(&model.InvSku{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ── Pack specs ──
+
+func (s *MasterService) ListPackSpecs(keyword string, page, pageSize int) ([]model.InvPackSpec, int64, error) {
+	q := s.db().Model(&model.InvPackSpec{})
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		q = q.Where("name ILIKE ? OR remark ILIKE ?", like, like)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var list []model.InvPackSpec
+	err := q.Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	return list, total, err
+}
+
+func (s *MasterService) CreatePackSpec(in *dto.InvPackSpecDTO) (*model.InvPackSpec, error) {
+	item := &model.InvPackSpec{
+		TenantID: s.tenantID,
+		Name:     strings.TrimSpace(in.Name),
+		Cost:     in.Cost,
+		WeightG:  in.WeightG,
+		Remark:   in.Remark,
+		Status:   statusOrDefault(in.Status),
+	}
+	if item.Name == "" {
+		return nil, ErrBadRequest
+	}
+	if err := s.repos.DB.Create(item).Error; err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrDuplicateCode
+		}
+		return nil, err
+	}
+	return item, nil
+}
+
+func (s *MasterService) UpdatePackSpec(id uint64, in *dto.InvPackSpecDTO) (*model.InvPackSpec, error) {
+	var item model.InvPackSpec
+	if err := s.db().First(&item, id).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	item.Name = strings.TrimSpace(in.Name)
+	item.Cost = in.Cost
+	item.WeightG = in.WeightG
+	item.Remark = in.Remark
+	item.Status = statusOrDefault(in.Status)
+	if item.Name == "" {
+		return nil, ErrBadRequest
+	}
+	if err := s.repos.DB.Save(&item).Error; err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrDuplicateCode
+		}
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (s *MasterService) DeletePackSpec(id uint64) error {
+	return s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("tenant_id = ? AND pack_spec_id = ?", s.tenantID, id).Delete(&model.InvPackSpecSku{}).Error; err != nil {
+			return err
+		}
+		res := tx.Where("tenant_id = ?", s.tenantID).Delete(&model.InvPackSpec{}, id)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
+}
+
+func (s *MasterService) ListPackSpecSkus(packSpecID uint64) ([]dto.PackSpecSkuRow, error) {
+	var list []dto.PackSpecSkuRow
+	err := s.repos.DB.Table("inv_pack_spec_skus AS ps").
+		Select("ps.id, ps.pack_spec_id, ps.inv_sku_id, s.sku_code, s.pick_name, ps.qty_min, ps.qty_max, ps.remark").
+		Joins("JOIN inv_skus s ON s.id = ps.inv_sku_id AND s.tenant_id = ps.tenant_id").
+		Where("ps.tenant_id = ? AND ps.pack_spec_id = ?", s.tenantID, packSpecID).
+		Order("ps.id asc").
+		Scan(&list).Error
+	if err != nil {
+		return nil, err
+	}
+	for i := range list {
+		list[i].NumRange = formatQtyRange(list[i].QtyMin, list[i].QtyMax)
+	}
+	return list, nil
+}
+
+func formatQtyRange(min, max float64) string {
+	if max > 0 {
+		return fmt.Sprintf("%g~%g", min, max)
+	}
+	if min > 0 {
+		return fmt.Sprintf("%g+", min)
+	}
+	return "-"
+}
+
+func (s *MasterService) BindPackSpecSku(in *dto.InvPackSpecSkuDTO) (*model.InvPackSpecSku, error) {
+	var pack model.InvPackSpec
+	if err := s.db().First(&pack, in.PackSpecID).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	var sku model.InvSku
+	if err := s.db().First(&sku, in.InvSkuID).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	item := &model.InvPackSpecSku{
+		TenantID:   s.tenantID,
+		PackSpecID: in.PackSpecID,
+		InvSkuID:   in.InvSkuID,
+		QtyMin:     in.QtyMin,
+		QtyMax:     in.QtyMax,
+		Remark:     in.Remark,
+	}
+	if err := s.repos.DB.Create(item).Error; err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrDuplicateCode
+		}
+		return nil, err
+	}
+	return item, nil
+}
+
+func (s *MasterService) UpdatePackSpecSku(id uint64, in *dto.InvPackSpecSkuDTO) (*model.InvPackSpecSku, error) {
+	var item model.InvPackSpecSku
+	if err := s.db().First(&item, id).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	if in.InvSkuID > 0 {
+		item.InvSkuID = in.InvSkuID
+	}
+	item.QtyMin = in.QtyMin
+	item.QtyMax = in.QtyMax
+	item.Remark = in.Remark
+	if err := s.repos.DB.Save(&item).Error; err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrDuplicateCode
+		}
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (s *MasterService) UnbindPackSpecSku(id uint64) error {
+	res := s.db().Delete(&model.InvPackSpecSku{}, id)
 	if res.Error != nil {
 		return res.Error
 	}
