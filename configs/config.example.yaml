@@ -12,6 +12,7 @@ auth:
 
 integrations:
   productcore_api_url: "http://127.0.0.1:8090"
+  supplycore_api_url: "http://127.0.0.1:8092"
 
 storage:
   driver: minio                  # local | minio

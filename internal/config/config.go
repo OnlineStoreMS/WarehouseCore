@@ -34,6 +34,7 @@ type AuthConfig struct {
 
 type IntegrationsConfig struct {
 	ProductCoreAPIURL string `mapstructure:"productcore_api_url"`
+	SupplyCoreAPIURL  string `mapstructure:"supplycore_api_url"`
 }
 
 type StorageConfig struct {
@@ -87,6 +88,9 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Integrations.ProductCoreAPIURL == "" {
 		cfg.Integrations.ProductCoreAPIURL = "http://127.0.0.1:8090"
+	}
+	if cfg.Integrations.SupplyCoreAPIURL == "" {
+		cfg.Integrations.SupplyCoreAPIURL = "http://127.0.0.1:8092"
 	}
 	if cfg.Storage.LocalPath == "" {
 		cfg.Storage.LocalPath = "./data/uploads"

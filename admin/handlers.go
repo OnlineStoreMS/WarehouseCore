@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"warehousecore/internal/dto"
+	"warehousecore/internal/integrations/supplycore"
 	"warehousecore/internal/pkg/authcontext"
 	"warehousecore/internal/pkg/httputil"
 	"warehousecore/internal/pkg/response"
@@ -19,10 +20,11 @@ type Handlers struct {
 	Doc    *service.DocumentService
 	Query  *service.QueryService
 	Integ  *service.IntegrationService
+	SC     *supplycore.Client
 }
 
-func NewHandlers(master *service.MasterService, doc *service.DocumentService, query *service.QueryService, integ *service.IntegrationService) *Handlers {
-	return &Handlers{Master: master, Doc: doc, Query: query, Integ: integ}
+func NewHandlers(master *service.MasterService, doc *service.DocumentService, query *service.QueryService, integ *service.IntegrationService, sc *supplycore.Client) *Handlers {
+	return &Handlers{Master: master, Doc: doc, Query: query, Integ: integ, SC: sc}
 }
 
 func (h *Handlers) master(c *gin.Context) *service.MasterService {
@@ -1040,4 +1042,19 @@ func (h *Handlers) TransferToStore(c *gin.Context) {
 		return
 	}
 	response.Created(c, item)
+}
+
+// ListSuppliers proxies SupplyCore VMS suppliers for product multi-supplier picker.
+func (h *Handlers) ListSuppliers(c *gin.Context) {
+	page, pageSize := httputil.ParsePage(c)
+	if h.SC == nil {
+		response.Fail(c, http.StatusBadGateway, "supplycore 未配置")
+		return
+	}
+	list, total, err := h.SC.ListSuppliers(c.Request.Context(), c.GetHeader("Authorization"), c.Query("keyword"), page, pageSize)
+	if err != nil {
+		response.Fail(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	response.OK(c, response.PageResult(list, total, page, pageSize))
 }

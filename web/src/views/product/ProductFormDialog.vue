@@ -29,6 +29,9 @@ const saving = ref(false)
 const activeTab = ref('base')
 const form = ref<any>({})
 const skus = ref<any[]>([])
+const suppliers = ref<any[]>([])
+const vmsSuppliers = ref<any[]>([])
+const vmsLoading = ref(false)
 
 const goodsKindOptions = [
   { label: '普通商品', value: 'normal' },
@@ -65,6 +68,22 @@ function emptySku(productType = 'normal') {
     description: '',
     pic: '',
     productType,
+  }
+}
+
+function emptySupplier() {
+  return {
+    id: undefined,
+    supplierId: undefined as number | undefined,
+    supplierCode: '',
+    supplierName: '',
+    purchaseUrl: '',
+    price: 0,
+    remark: '',
+    contactName: '',
+    phone: '',
+    isDefault: 0,
+    sort: 0,
   }
 }
 
@@ -130,7 +149,21 @@ function resetCreate() {
     ...blankProductExtras(),
   }
   skus.value = [emptySku(pt)]
+  suppliers.value = []
   activeTab.value = 'base'
+}
+
+async function loadVmsSuppliers() {
+  if (vmsSuppliers.value.length || vmsLoading.value) return
+  vmsLoading.value = true
+  try {
+    const data = await api.listSuppliers({ page: 1, pageSize: 200 })
+    vmsSuppliers.value = data.list || []
+  } catch {
+    vmsSuppliers.value = []
+  } finally {
+    vmsLoading.value = false
+  }
 }
 
 async function loadEdit(id: number) {
@@ -147,7 +180,13 @@ async function loadEdit(id: number) {
     goodsKind: s.goodsKind || 'normal',
   }))
   if (!skus.value.length) skus.value = [emptySku(form.value.defaultProductType)]
+  suppliers.value = (detail.suppliers || []).map((s: any) => ({
+    ...emptySupplier(),
+    ...s,
+    isDefault: s.isDefault ? 1 : 0,
+  }))
   activeTab.value = 'base'
+  await loadVmsSuppliers()
 }
 
 watch(
@@ -156,13 +195,20 @@ watch(
     if (!open) return
     try {
       if (props.productId) await loadEdit(props.productId)
-      else resetCreate()
+      else {
+        resetCreate()
+        loadVmsSuppliers()
+      }
     } catch (e) {
       ElMessage.error((e as Error).message || '加载失败')
       visible.value = false
     }
   },
 )
+
+watch(activeTab, (tab) => {
+  if (tab === 'purchase') loadVmsSuppliers()
+})
 
 function addSkuRow() {
   skus.value.push(emptySku(form.value.defaultProductType || 'normal'))
@@ -174,6 +220,41 @@ function removeSkuRow(idx: number) {
     return
   }
   skus.value.splice(idx, 1)
+}
+
+function addSupplierRow() {
+  const row = emptySupplier()
+  if (!suppliers.value.length) row.isDefault = 1
+  suppliers.value.push(row)
+}
+
+function removeSupplierRow(idx: number) {
+  const wasDefault = suppliers.value[idx]?.isDefault
+  suppliers.value.splice(idx, 1)
+  if (wasDefault && suppliers.value.length) suppliers.value[0].isDefault = 1
+}
+
+function onSupplierPick(row: any, supplierId?: number | string | null) {
+  const id = Number(supplierId)
+  if (!supplierId || !id) {
+    row.supplierId = undefined
+    row.supplierCode = ''
+    row.supplierName = ''
+    return
+  }
+  const s = vmsSuppliers.value.find((x) => x.id === id)
+  if (!s) return
+  row.supplierId = s.id
+  row.supplierCode = s.code || ''
+  row.supplierName = s.name || ''
+  if (!row.contactName) row.contactName = s.contactName || ''
+  if (!row.phone) row.phone = s.phone || ''
+}
+
+function setDefaultSupplier(idx: number) {
+  suppliers.value.forEach((s, i) => {
+    s.isDefault = i === idx ? 1 : 0
+  })
 }
 
 function fillSkuFromParent() {
@@ -216,6 +297,17 @@ async function save() {
     codes.add(c)
   }
 
+  const selectedSuppliers = suppliers.value.filter((s) => s.supplierId)
+  const supplierIds = new Set<number>()
+  for (const s of selectedSuppliers) {
+    if (supplierIds.has(s.supplierId)) {
+      ElMessage.warning(`供应商重复：${s.supplierName || s.supplierId}`)
+      activeTab.value = 'purchase'
+      return
+    }
+    supplierIds.add(s.supplierId)
+  }
+
   const body = {
     ...form.value,
     parentSku: form.value.parentSku.trim(),
@@ -246,6 +338,19 @@ async function save() {
       supplierItemNo: s.supplierItemNo || '',
       description: s.description || '',
       pic: s.pic || '',
+    })),
+    suppliers: selectedSuppliers.map((s, i) => ({
+      id: s.id || undefined,
+      supplierId: s.supplierId,
+      supplierCode: s.supplierCode || '',
+      supplierName: s.supplierName || '',
+      purchaseUrl: s.purchaseUrl || '',
+      price: Number(s.price) || 0,
+      remark: s.remark || '',
+      contactName: s.contactName || '',
+      phone: s.phone || '',
+      isDefault: s.isDefault ? 1 : 0,
+      sort: i + 1,
     })),
   }
 
@@ -352,9 +457,9 @@ async function save() {
           <el-button type="primary" link :icon="Plus" @click="addSkuRow">添加</el-button>
         </div>
         <el-table :data="skus" border size="small" class="sku-grid">
-          <el-table-column label="图片" width="88" fixed>
+          <el-table-column label="图片" width="72" fixed>
             <template #default="{ row }">
-              <ImageField v-model="row.pic" tip="SKU图" subdir="skus" />
+              <ImageField v-model="row.pic" tip="SKU图" subdir="skus" compact :size="48" />
             </template>
           </el-table-column>
           <el-table-column label="库存SKU" min-width="120" fixed>
@@ -484,20 +589,54 @@ async function save() {
             </el-col>
           </el-row>
         </el-form>
-        <div class="section-title">多供应商信息（按库存SKU）</div>
-        <el-table :data="skus" border size="small">
-          <el-table-column prop="skuCode" label="库存SKU" width="140" />
-          <el-table-column label="供应商货号" min-width="140">
-            <template #default="{ row }"><el-input v-model="row.supplierItemNo" size="small" /></template>
-          </el-table-column>
-          <el-table-column label="上次采购价/成本" width="140">
+        <div class="section-title sku-title">
+          <span>多供应商信息</span>
+          <el-button type="primary" link :icon="Plus" @click="addSupplierRow">添加</el-button>
+        </div>
+        <el-table :data="suppliers" border size="small" empty-text="点击「添加」从 VMS 选择供应商">
+          <el-table-column label="供应商名称" min-width="200">
             <template #default="{ row }">
-              <el-input-number v-model="row.lastPurchasePrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
+              <el-select
+                v-model="row.supplierId"
+                filterable
+                clearable
+                :loading="vmsLoading"
+                placeholder="从 VMS 选择供应商"
+                style="width: 100%"
+                @change="onSupplierPick(row, $event)"
+              >
+                <el-option
+                  v-for="s in vmsSuppliers"
+                  :key="s.id"
+                  :label="`${s.name}${s.code ? ' (' + s.code + ')' : ''}`"
+                  :value="s.id"
+                  :disabled="suppliers.some((x) => x !== row && x.supplierId === s.id)"
+                />
+              </el-select>
+              <div v-if="row.isDefault" class="default-supplier-tag">默认供应商</div>
             </template>
           </el-table-column>
-          <el-table-column label="最低采购价" width="130">
+          <el-table-column label="采购网址" min-width="180">
+            <template #default="{ row }"><el-input v-model="row.purchaseUrl" size="small" placeholder="http(s)://" /></template>
+          </el-table-column>
+          <el-table-column label="供应商报价(￥)" width="130">
             <template #default="{ row }">
-              <el-input-number v-model="row.minPurchasePrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
+              <el-input-number v-model="row.price" :min="0" :precision="4" :controls="false" size="small" style="width: 100%" />
+            </template>
+          </el-table-column>
+          <el-table-column label="进货说明" min-width="120">
+            <template #default="{ row }"><el-input v-model="row.remark" size="small" /></template>
+          </el-table-column>
+          <el-table-column label="联系人" width="110">
+            <template #default="{ row }"><el-input v-model="row.contactName" size="small" /></template>
+          </el-table-column>
+          <el-table-column label="联系电话" width="130">
+            <template #default="{ row }"><el-input v-model="row.phone" size="small" /></template>
+          </el-table-column>
+          <el-table-column label="操作" width="140" fixed="right">
+            <template #default="{ $index }">
+              <el-button link type="primary" size="small" @click="setDefaultSupplier($index)">设默认</el-button>
+              <el-button link type="danger" size="small" :icon="Delete" @click="removeSupplierRow($index)" />
             </template>
           </el-table-column>
         </el-table>
@@ -563,9 +702,11 @@ async function save() {
           </el-row>
         </el-form>
         <div class="section-title">SKU 售价与图片</div>
-        <el-table :data="skus" border size="small">
-          <el-table-column label="图片" width="88">
-            <template #default="{ row }"><ImageField v-model="row.pic" tip="SKU图" subdir="skus" /></template>
+        <el-table :data="skus" border size="small" class="sku-grid">
+          <el-table-column label="图片" width="72">
+            <template #default="{ row }">
+              <ImageField v-model="row.pic" tip="SKU图" subdir="skus" compact :size="48" />
+            </template>
           </el-table-column>
           <el-table-column prop="skuCode" label="库存SKU" width="130" />
           <el-table-column label="商品类型" width="110">
@@ -622,13 +763,22 @@ async function save() {
   margin-top: 8px;
 }
 .tab-form { max-width: 1000px; }
-.sku-grid :deep(.img-field) { width: 72px; }
-.sku-grid :deep(.uploader .el-upload),
-.sku-grid :deep(.preview),
-.sku-grid :deep(.placeholder) {
-  width: 64px;
-  height: 64px;
+.sku-grid :deep(.el-table__cell) {
+  padding: 8px 4px;
+  vertical-align: middle;
 }
-.sku-grid :deep(.actions),
-.sku-grid :deep(.el-input) { display: none; }
+.sku-grid :deep(.cell) {
+  overflow: visible;
+  line-height: normal;
+}
+.default-supplier-tag {
+  margin-top: 4px;
+  display: inline-block;
+  font-size: 10px;
+  color: #ff9900;
+  border: 1px solid #ff9900;
+  padding: 0 5px;
+  height: 16px;
+  line-height: 15px;
+}
 </style>

@@ -38,6 +38,9 @@ export const api = {
   updateProductWithSkus: (id: number, body: unknown) => client.put(`/products/${id}/with-skus`, body),
   deleteProduct: (id: number) => client.delete(`/products/${id}`),
 
+  // VMS suppliers (SupplyCore proxy)
+  listSuppliers: (params?: Record<string, unknown>) => page<any>('/suppliers', params),
+
   // skus
   listSkus: (params?: Record<string, unknown>) => page<any>('/skus', params),
   getSku: (id: number) => client.get(`/skus/${id}`).then((r) => r.data.data),

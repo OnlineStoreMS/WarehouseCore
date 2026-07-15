@@ -69,11 +69,27 @@ type InvProductDTO struct {
 	MarketPrice  float64 `json:"marketPrice"`
 }
 
-// ProductWithSkusDTO 对齐普源「新增普通商品」：一次提交父SKU + 库存SKU明细
+// ProductWithSkusDTO 对齐普源「新增普通商品」：一次提交父SKU + 库存SKU明细 + 多供应商
 type ProductWithSkusDTO struct {
 	InvProductDTO
-	DefaultProductType string              `json:"defaultProductType"` // normal/combo/assembly
-	Skus               []ProductSkuItemDTO `json:"skus" binding:"required,min=1"`
+	DefaultProductType string                   `json:"defaultProductType"` // normal/combo/assembly
+	Skus               []ProductSkuItemDTO      `json:"skus" binding:"required,min=1"`
+	Suppliers          []ProductSupplierItemDTO `json:"suppliers"`
+}
+
+// ProductSupplierItemDTO 商品多供应商行（供应商选自 SupplyCore VMS）
+type ProductSupplierItemDTO struct {
+	ID           uint64  `json:"id"`
+	SupplierID   uint64  `json:"supplierId" binding:"required"`
+	SupplierCode string  `json:"supplierCode"`
+	SupplierName string  `json:"supplierName"`
+	PurchaseURL  string  `json:"purchaseUrl"`
+	Price        float64 `json:"price"`
+	Remark       string  `json:"remark"`
+	ContactName  string  `json:"contactName"`
+	Phone        string  `json:"phone"`
+	IsDefault    int8    `json:"isDefault"`
+	Sort         int     `json:"sort"`
 }
 
 type ProductSkuItemDTO struct {

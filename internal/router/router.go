@@ -6,6 +6,7 @@ import (
 	"warehousecore/admin"
 	adminmw "warehousecore/admin/middleware"
 	"warehousecore/internal/config"
+	"warehousecore/internal/integrations/supplycore"
 	jwtmgr "warehousecore/internal/pkg/jwt"
 	"warehousecore/internal/repo"
 	"warehousecore/internal/service"
@@ -38,7 +39,8 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	docSvc := service.NewDocumentService(repos)
 	querySvc := service.NewQueryService(repos)
 	integSvc := service.NewIntegrationService(repos)
-	h := admin.NewHandlers(masterSvc, docSvc, querySvc, integSvc)
+	scClient := supplycore.NewClient(cfg.Integrations.SupplyCoreAPIURL)
+	h := admin.NewHandlers(masterSvc, docSvc, querySvc, integSvc, scClient)
 	uploadH := admin.NewUploadHandler(store)
 
 	r.GET("/health", func(c *gin.Context) {

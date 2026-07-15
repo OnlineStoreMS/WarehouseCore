@@ -123,13 +123,17 @@ func (s *MasterService) ListProducts(keyword string, categoryID uint64, uncatego
 		return nil, 0, err
 	}
 	var list []model.InvProduct
-	err := q.Preload("Skus").Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	err := q.Preload("Skus").Preload("Suppliers", func(db *gorm.DB) *gorm.DB {
+		return db.Order("is_default desc, sort asc, id asc")
+	}).Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
 	return list, total, err
 }
 
 func (s *MasterService) GetProduct(id uint64) (*model.InvProduct, error) {
 	var item model.InvProduct
-	if err := s.db().Preload("Skus").First(&item, id).Error; err != nil {
+	if err := s.db().Preload("Skus").Preload("Suppliers", func(db *gorm.DB) *gorm.DB {
+		return db.Order("is_default desc, sort asc, id asc")
+	}).First(&item, id).Error; err != nil {
 		return nil, mapNotFound(err)
 	}
 	return &item, nil
@@ -241,6 +245,9 @@ func (s *MasterService) CreateProductWithSkus(in *dto.ProductWithSkusDTO) (*mode
 				return e
 			}
 		}
+		if e := s.replaceProductSuppliersTx(tx, prod.ID, in.Suppliers); e != nil {
+			return e
+		}
 		createdID = prod.ID
 		return nil
 	})
@@ -329,12 +336,73 @@ func (s *MasterService) UpdateProductWithSkus(id uint64, in *dto.ProductWithSkus
 				return e
 			}
 		}
+		if e := s.replaceProductSuppliersTx(tx, id, in.Suppliers); e != nil {
+			return e
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return s.GetProduct(id)
+}
+
+func (s *MasterService) replaceProductSuppliersTx(tx *gorm.DB, productID uint64, rows []dto.ProductSupplierItemDTO) error {
+	if e := tx.Where("tenant_id = ? AND product_id = ?", s.tenantID, productID).Delete(&model.InvProductSupplier{}).Error; e != nil {
+		return e
+	}
+	if len(rows) == 0 {
+		return nil
+	}
+	seen := map[uint64]struct{}{}
+	hasDefault := false
+	for i := range rows {
+		r := &rows[i]
+		if r.SupplierID == 0 {
+			return ErrBadRequest
+		}
+		if _, ok := seen[r.SupplierID]; ok {
+			return ErrDuplicateCode
+		}
+		seen[r.SupplierID] = struct{}{}
+		name := strings.TrimSpace(r.SupplierName)
+		if name == "" {
+			return ErrBadRequest
+		}
+		isDef := r.IsDefault
+		if isDef != 0 {
+			isDef = 1
+			if hasDefault {
+				isDef = 0
+			} else {
+				hasDefault = true
+			}
+		}
+		item := &model.InvProductSupplier{
+			TenantID:     s.tenantID,
+			ProductID:    productID,
+			SupplierID:   r.SupplierID,
+			SupplierCode: strings.TrimSpace(r.SupplierCode),
+			SupplierName: name,
+			PurchaseURL:  strings.TrimSpace(r.PurchaseURL),
+			Price:        r.Price,
+			Remark:       strings.TrimSpace(r.Remark),
+			ContactName:  strings.TrimSpace(r.ContactName),
+			Phone:        strings.TrimSpace(r.Phone),
+			IsDefault:    isDef,
+			Sort:         r.Sort,
+		}
+		if item.Sort == 0 {
+			item.Sort = i + 1
+		}
+		if e := tx.Create(item).Error; e != nil {
+			if isUniqueViolation(e) {
+				return ErrDuplicateCode
+			}
+			return e
+		}
+	}
+	return nil
 }
 
 func (s *MasterService) createProductTx(tx *gorm.DB, in *dto.InvProductDTO) (*model.InvProduct, error) {
@@ -465,6 +533,9 @@ func (s *MasterService) DeleteProduct(id uint64) error {
 		}
 	}
 	return s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("tenant_id = ? AND product_id = ?", s.tenantID, id).Delete(&model.InvProductSupplier{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Where("tenant_id = ? AND parent_id = ?", s.tenantID, id).Delete(&model.InvSku{}).Error; err != nil {
 			return err
 		}

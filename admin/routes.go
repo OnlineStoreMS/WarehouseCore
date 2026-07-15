@@ -96,4 +96,7 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.DELETE("/pim-mappings/:id", h.DeletePimMapping)
 	g.POST("/integrations/purchase-inbound", h.PurchaseInbound)
 	g.POST("/integrations/transfer-to-store", h.TransferToStore)
+
+	// VMS suppliers (proxy SupplyCore)
+	g.GET("/suppliers", h.ListSuppliers)
 }

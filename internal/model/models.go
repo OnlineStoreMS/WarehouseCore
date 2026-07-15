@@ -87,9 +87,31 @@ type InvProduct struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Skus      []InvSku  `gorm:"foreignKey:ParentID" json:"skus,omitempty"`
+	Suppliers []InvProductSupplier `gorm:"foreignKey:ProductID" json:"suppliers,omitempty"`
 }
 
 func (InvProduct) TableName() string { return "inv_products" }
+
+// InvProductSupplier 商品多供应商（对齐普源，挂在父商品而非库存SKU；供应商主数据来自 SupplyCore VMS）
+type InvProductSupplier struct {
+	ID           uint64  `gorm:"primaryKey" json:"id"`
+	TenantID     uint64  `gorm:"index;not null" json:"tenantId"`
+	ProductID    uint64  `gorm:"index;not null" json:"productId"`
+	SupplierID   uint64  `gorm:"index;not null" json:"supplierId"` // SupplyCore 供应商 ID
+	SupplierCode string  `gorm:"size:64" json:"supplierCode"`
+	SupplierName string  `gorm:"size:256;not null" json:"supplierName"`
+	PurchaseURL  string  `gorm:"size:1024" json:"purchaseUrl"` // 采购网址
+	Price        float64 `gorm:"type:numeric(14,4);default:0" json:"price"` // 供应商报价
+	Remark       string  `gorm:"size:512" json:"remark"`                     // 进货说明
+	ContactName  string  `gorm:"size:128" json:"contactName"`
+	Phone        string  `gorm:"size:64" json:"phone"`
+	IsDefault    int8    `gorm:"default:0" json:"isDefault"`
+	Sort         int     `gorm:"default:0" json:"sort"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+func (InvProductSupplier) TableName() string { return "inv_product_suppliers" }
 
 // ── 库存SKU ──
 
