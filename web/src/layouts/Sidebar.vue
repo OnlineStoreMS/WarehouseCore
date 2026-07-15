@@ -3,7 +3,7 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   HomeFilled, Goods, Box, OfficeBuilding, DataBoard,
-  Document, Switch, Download, Upload, Printer, Link,
+  Document, Switch, Download, Upload, Link,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -57,8 +57,8 @@ watch(() => route.path, () => {})
           <el-menu-item index="/details/store-skus" @click="navigate('/details/store-skus')">店铺SKU明细</el-menu-item>
         </el-sub-menu>
 
-        <el-menu-item index="/barcode" @click="navigate('/barcode')">
-          <el-icon><Printer /></el-icon><span>条码打印</span>
+        <el-menu-item index="/barcode" class="level2-leaf" @click="navigate('/barcode')">
+          <span>条码打印</span>
         </el-menu-item>
 
         <el-sub-menu index="goods-other">
@@ -132,11 +132,19 @@ watch(() => route.path, () => {})
   border-bottom: 1px solid #ffffff14;
 }
 .sidebar :deep(.el-menu) { border-right: none; }
-.sidebar :deep(.el-sub-menu .el-menu-item) {
-  min-width: auto;
+/* 二级：商品管理 / 商品明细 / 条码打印 / 其它 同一缩进 */
+.sidebar :deep(.el-sub-menu .el-sub-menu > .el-sub-menu__title),
+.sidebar :deep(.el-menu-item.level2-leaf) {
   padding-left: 48px !important;
 }
+/* 三级叶子 */
 .sidebar :deep(.el-sub-menu .el-sub-menu .el-menu-item) {
+  min-width: auto;
   padding-left: 64px !important;
+}
+/* 其它一级分组下的叶子（库存/仓库等） */
+.sidebar :deep(.el-sub-menu > .el-menu > .el-menu-item:not(.level2-leaf)) {
+  min-width: auto;
+  padding-left: 48px !important;
 }
 </style>
