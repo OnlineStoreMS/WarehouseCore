@@ -416,19 +416,35 @@ type SlowMovingQuery struct {
 }
 
 type BalanceRow struct {
-	ID            uint64    `json:"id"`
-	WarehouseID   uint64    `json:"warehouseId"`
-	WarehouseName string    `json:"warehouseName"`
-	LocationID    uint64    `json:"locationId"`
-	LocationCode  string    `json:"locationCode"`
-	InvSkuID      uint64    `json:"invSkuId"`
-	SkuCode       string    `json:"skuCode"`
-	PickName      string    `json:"pickName"`
-	ProductName   string    `json:"productName"`
-	OnHand        float64   `json:"onHand"`
-	RetailPrice   float64   `json:"retailPrice"`
-	LastCost      float64   `json:"lastCost"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID               uint64    `json:"id"`
+	WarehouseID      uint64    `json:"warehouseId"`
+	WarehouseName    string    `json:"warehouseName"`
+	LocationID       uint64    `json:"locationId"`
+	LocationCode     string    `json:"locationCode"`
+	InvSkuID         uint64    `json:"invSkuId"`
+	SkuCode          string    `json:"skuCode"`
+	Pic              string    `json:"pic"`
+	PickName         string    `json:"pickName"`
+	ProductName      string    `json:"productName"`
+	CategoryName     string    `json:"categoryName"`
+	SkuStatus        string    `json:"skuStatus"`
+	OnHand           float64   `json:"onHand"`
+	ReservedQty      float64   `json:"reservedQty"` // 一期无占用，固定 0
+	AvailableQty     float64   `json:"availableQty"`
+	StockAmount      float64   `json:"stockAmount"`
+	UnitCost         float64   `json:"unitCost"`         // 库存单价（上次采购价）
+	MinPurchasePrice float64   `json:"minPurchasePrice"`
+	LastCost         float64   `json:"lastCost"` // 上次采购价
+	WeightG          float64   `json:"weightG"`
+	Brand            string    `json:"brand"`
+	SpecClass        string    `json:"specClass"`
+	Model            string    `json:"model"`
+	Material         string    `json:"material"`
+	Style1           string    `json:"style1"`
+	Style2           string    `json:"style2"`
+	Style3           string    `json:"style3"`
+	RetailPrice      float64   `json:"retailPrice"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 type SummaryRow struct {
@@ -436,11 +452,22 @@ type SummaryRow struct {
 	WarehouseName string  `json:"warehouseName"`
 	InvSkuID      uint64  `json:"invSkuId"`
 	SkuCode       string  `json:"skuCode"`
+	PickName      string  `json:"pickName"`
 	ProductName   string  `json:"productName"`
+	Style1        string  `json:"style1"`
+	Style2        string  `json:"style2"`
+	Style3        string  `json:"style3"`
+	Purchaser     string  `json:"purchaser"`
+	CostPrice     float64 `json:"costPrice"`
 	Opening       float64 `json:"opening"`
+	OpeningAmount float64 `json:"openingAmount"`
 	Inbound       float64 `json:"inbound"`
+	InboundAmount float64 `json:"inboundAmount"`
 	Outbound      float64 `json:"outbound"`
+	OutboundAmount float64 `json:"outboundAmount"`
 	Closing       float64 `json:"closing"`
+	AvgUnitCost   float64 `json:"avgUnitCost"`
+	ClosingAmount float64 `json:"closingAmount"`
 }
 
 type MovementRow struct {
@@ -451,21 +478,34 @@ type MovementRow struct {
 	LocationCode  string    `json:"locationCode"`
 	InvSkuID      uint64    `json:"invSkuId"`
 	SkuCode       string    `json:"skuCode"`
+	PickName      string    `json:"pickName"`
+	ProductName   string    `json:"productName"`
 	MoveType      string    `json:"moveType"`
 	Qty           float64   `json:"qty"`
+	InboundQty    float64   `json:"inboundQty"`
+	OutboundQty   float64   `json:"outboundQty"`
 	BalanceAfter  float64   `json:"balanceAfter"`
+	UnitCost      float64   `json:"unitCost"`
+	Amount        float64   `json:"amount"`
 	DocType       string    `json:"docType"`
 	DocNo         string    `json:"docNo"`
 	Remark        string    `json:"remark"`
 }
 
 type SlowMovingRow struct {
-	WarehouseID   uint64     `json:"warehouseId"`
-	WarehouseName string     `json:"warehouseName"`
-	InvSkuID      uint64     `json:"invSkuId"`
-	SkuCode       string     `json:"skuCode"`
-	ProductName   string     `json:"productName"`
-	OnHand        float64    `json:"onHand"`
-	LastMoveAt    *time.Time `json:"lastMoveAt"`
-	IdleDays      int        `json:"idleDays"`
+	WarehouseID     uint64     `json:"warehouseId"`
+	WarehouseName   string     `json:"warehouseName"`
+	InvSkuID        uint64     `json:"invSkuId"`
+	SkuCode         string     `json:"skuCode"`
+	PickName        string     `json:"pickName"`
+	ProductName     string     `json:"productName"`
+	OnHand          float64    `json:"onHand"`
+	AvailableQty    float64    `json:"availableQty"`
+	UnitCost        float64    `json:"unitCost"`
+	StockAmount     float64    `json:"stockAmount"`
+	LastInboundAt   *time.Time `json:"lastInboundAt"`
+	LastInboundQty  float64    `json:"lastInboundQty"`
+	LastMoveAt      *time.Time `json:"lastMoveAt"`
+	IdleDays        int        `json:"idleDays"`
+	CreatedAt       *time.Time `json:"createdAt"` // 商品创建时间
 }
