@@ -3,17 +3,20 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   HomeFilled, Goods, Box, OfficeBuilding, DataBoard,
-  Document, Switch, Download, Upload, Printer, Link, Picture,
+  Document, Switch, Download, Upload, Printer, Link,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  if (route.path.startsWith('/barcode')) return '/barcode'
+  return route.path
+})
 const logoText = computed(() => (collapsed.value ? 'WC' : '仓储中心'))
 
-const productOpeneds = ['goods', 'goods-mgmt', 'goods-detail', 'goods-barcode', 'goods-image', 'goods-other']
+const productOpeneds = ['goods']
 
 function navigate(path: string) {
   router.push(path)
@@ -37,7 +40,6 @@ watch(() => route.path, () => {})
         <el-icon><HomeFilled /></el-icon><span>工作台</span>
       </el-menu-item>
 
-      <!-- 对齐普源「商品」板块 -->
       <el-sub-menu index="goods">
         <template #title><el-icon><Goods /></el-icon><span>商品</span></template>
 
@@ -55,20 +57,9 @@ watch(() => route.path, () => {})
           <el-menu-item index="/details/store-skus" @click="navigate('/details/store-skus')">店铺SKU明细</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="goods-barcode">
-          <template #title>
-            <el-icon><Printer /></el-icon><span>条码打印</span>
-          </template>
-          <el-menu-item index="/barcode/skus" @click="navigate('/barcode/skus')">库存SKU</el-menu-item>
-          <el-menu-item index="/barcode/overseas" @click="navigate('/barcode/overseas')">海外仓SKU</el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu index="goods-image">
-          <template #title>
-            <el-icon><Picture /></el-icon><span>图片</span>
-          </template>
-          <el-menu-item index="/images/space" @click="navigate('/images/space')">图片空间</el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/barcode" @click="navigate('/barcode')">
+          <el-icon><Printer /></el-icon><span>条码打印</span>
+        </el-menu-item>
 
         <el-sub-menu index="goods-other">
           <template #title><span>其它</span></template>

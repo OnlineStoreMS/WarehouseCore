@@ -106,4 +106,15 @@ export const api = {
   listPimMappings: (params?: Record<string, unknown>) => page<any>('/pim-mappings', params),
   upsertPimMapping: (body: unknown) => client.post('/pim-mappings', body),
   deletePimMapping: (id: number) => client.delete(`/pim-mappings/${id}`),
+
+  // goods tools
+  getGoodsFeeSettings: () => client.get('/goods-fee-settings').then((r) => r.data.data),
+  saveGoodsFeeSettings: (body: unknown) => client.put('/goods-fee-settings', body).then((r) => r.data.data),
+  getSkuByCode: (skuCode: string) => client.get('/skus/by-code', { params: { skuCode } }).then((r) => r.data.data),
+  updateSkuWeight: (body: { skuCode: string; weightG: number }) => client.post('/skus/update-weight', body).then((r) => r.data.data),
+  listProfitTrials: (params?: Record<string, unknown>) => page<any>('/profit-trials', params),
+  createProfitTrial: (body: unknown) => client.post('/profit-trials', body),
+  updateProfitTrial: (id: number, body: unknown) => client.put(`/profit-trials/${id}`, body),
+  deleteProfitTrials: (ids: number[]) => client.post('/profit-trials/delete', { ids }),
+  calcProfitTrials: (body: unknown) => client.post('/profit-trials/calc', body).then((r) => r.data.data),
 }

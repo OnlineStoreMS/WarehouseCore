@@ -980,15 +980,16 @@ func (s *MasterService) CreateWarehouse(in *dto.WarehouseDTO) (*model.Warehouse,
 		wt = model.WarehouseTypeCentral
 	}
 	item := &model.Warehouse{
-		TenantID:  s.tenantID,
-		Code:      strings.TrimSpace(in.Code),
-		Name:      strings.TrimSpace(in.Name),
-		Type:      wt,
-		Address:   in.Address,
-		Contact:   in.Contact,
-		Phone:     in.Phone,
-		Status:    statusOrDefault(in.Status),
-		IsDefault: in.IsDefault,
+		TenantID:     s.tenantID,
+		Code:         strings.TrimSpace(in.Code),
+		Name:         strings.TrimSpace(in.Name),
+		Type:         wt,
+		Address:      in.Address,
+		Contact:      in.Contact,
+		Phone:        in.Phone,
+		Status:       statusOrDefault(in.Status),
+		IsDefault:    in.IsDefault,
+		AllowCalcFee: in.AllowCalcFee,
 	}
 	err := s.repos.DB.Transaction(func(tx *gorm.DB) error {
 		if item.IsDefault == 1 {
@@ -1031,6 +1032,7 @@ func (s *MasterService) UpdateWarehouse(id uint64, in *dto.WarehouseDTO) (*model
 	item.Phone = in.Phone
 	item.Status = statusOrDefault(in.Status)
 	item.IsDefault = in.IsDefault
+	item.AllowCalcFee = in.AllowCalcFee
 	err := s.repos.DB.Transaction(func(tx *gorm.DB) error {
 		if item.IsDefault == 1 {
 			if e := tx.Model(&model.Warehouse{}).Where("tenant_id = ? AND id <> ?", s.tenantID, id).Update("is_default", 0).Error; e != nil {

@@ -2,8 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '../layouts/AdminLayout.vue'
 import { getToken, redirectToPortal, ensureSession, clearToken } from '../utils/auth'
 
-const Placeholder = () => import('../views/common/PlaceholderPage.vue')
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -26,12 +24,10 @@ const router = createRouter({
       children: [
         { path: 'dashboard', name: 'Dashboard', component: () => import('../views/Dashboard.vue'), meta: { title: '工作台' } },
 
-        // 商品管理
         { path: 'products', name: 'Products', component: () => import('../views/product/ProductList.vue'), meta: { title: '商品信息', section: '商品', group: '商品管理' } },
         { path: 'categories', name: 'Categories', component: () => import('../views/product/CategoryList.vue'), meta: { title: '商品类别', section: '商品', group: '商品管理' } },
         { path: 'pack-specs', name: 'PackSpecs', component: () => import('../views/product/PackSpecList.vue'), meta: { title: '包装规格', section: '商品', group: '商品管理' } },
 
-        // 商品明细
         {
           path: 'details/assembly',
           name: 'AssemblyDetails',
@@ -53,47 +49,15 @@ const router = createRouter({
           meta: { title: '店铺SKU明细', section: '商品', group: '商品明细' },
         },
 
-        // 条码打印
-        { path: 'barcode', redirect: '/barcode/skus' },
-        { path: 'barcode/skus', name: 'BarcodeSkus', component: () => import('../views/product/BarcodePrint.vue'), meta: { title: '库存SKU', section: '商品', group: '条码打印' } },
-        {
-          path: 'barcode/overseas',
-          name: 'BarcodeOverseas',
-          component: Placeholder,
-          meta: { title: '海外仓SKU', section: '商品', group: '条码打印', placeholderTip: '海外仓条码打印将按普源 overseas SKU 打印能力补齐。' },
-        },
+        { path: 'barcode', name: 'Barcode', component: () => import('../views/product/BarcodePrint.vue'), meta: { title: '条码打印', section: '商品' } },
+        { path: 'barcode/skus', redirect: '/barcode' },
+        { path: 'barcode-print', redirect: '/barcode' },
 
-        // 图片
-        {
-          path: 'images/space',
-          name: 'ImageSpace',
-          component: Placeholder,
-          meta: { title: '图片空间', section: '商品', group: '图片', placeholderTip: '图片空间用于统一管理商品主图/SKU 图，后续对接对象存储浏览与清理。' },
-        },
+        { path: 'tools/sku-cost', name: 'SkuCost', component: () => import('../views/product/SkuCostSettings.vue'), meta: { title: '商品费用设置', section: '商品', group: '其它' } },
+        { path: 'tools/weight-check', name: 'WeightCheck', component: () => import('../views/product/WeightCheck.vue'), meta: { title: '商品重量检测', section: '商品', group: '其它' } },
+        { path: 'tools/profit-calc', name: 'ProfitCalc', component: () => import('../views/product/ProfitCalc.vue'), meta: { title: '商品利润试算', section: '商品', group: '其它' } },
 
-        // 其它
-        {
-          path: 'tools/sku-cost',
-          name: 'SkuCost',
-          component: Placeholder,
-          meta: { title: '商品费用设置', section: '商品', group: '其它', placeholderTip: '按库存SKU维护头程/包装/其它费用项，对齐普源商品费用设置。' },
-        },
-        {
-          path: 'tools/weight-check',
-          name: 'WeightCheck',
-          component: Placeholder,
-          meta: { title: '商品重量检测', section: '商品', group: '其它', placeholderTip: '比对申报重量与实测重量差异，对齐普源商品重量检测。' },
-        },
-        {
-          path: 'tools/profit-calc',
-          name: 'ProfitCalc',
-          component: Placeholder,
-          meta: { title: '商品利润试算', section: '商品', group: '其它', placeholderTip: '按售价、采购成本与费用项试算毛利，对齐普源商品利润试算。' },
-        },
-
-        // 兼容旧入口
         { path: 'boms', redirect: '/details/combo' },
-        { path: 'barcode-print', redirect: '/barcode/skus' },
 
         { path: 'warehouses', name: 'Warehouses', component: () => import('../views/warehouse/WarehouseList.vue'), meta: { title: '仓库设置' } },
         { path: 'locations', name: 'Locations', component: () => import('../views/warehouse/LocationList.vue'), meta: { title: '库位管理' } },

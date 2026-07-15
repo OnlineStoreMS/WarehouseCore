@@ -30,6 +30,8 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 
 	// Inventory SKUs
 	g.GET("/skus", h.ListSkus)
+	g.GET("/skus/by-code", h.GetSkuByCode)
+	g.POST("/skus/update-weight", h.UpdateSkuWeight)
 	g.POST("/skus", h.CreateSku)
 	g.GET("/skus/:id", h.GetSku)
 	g.PUT("/skus/:id", h.UpdateSku)
@@ -99,4 +101,13 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 
 	// VMS suppliers (proxy SupplyCore)
 	g.GET("/suppliers", h.ListSuppliers)
+
+	// 商品其它工具（对齐普源）
+	g.GET("/goods-fee-settings", h.GetGoodsFeeSettings)
+	g.PUT("/goods-fee-settings", h.SaveGoodsFeeSettings)
+	g.GET("/profit-trials", h.ListProfitTrials)
+	g.POST("/profit-trials", h.UpsertProfitTrial)
+	g.PUT("/profit-trials/:id", h.UpdateProfitTrial)
+	g.POST("/profit-trials/delete", h.DeleteProfitTrials)
+	g.POST("/profit-trials/calc", h.CalcProfitTrials)
 }

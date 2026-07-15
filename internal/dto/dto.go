@@ -208,14 +208,80 @@ type BomItemDTO struct {
 }
 
 type WarehouseDTO struct {
-	Code      string `json:"code" binding:"required"`
-	Name      string `json:"name" binding:"required"`
-	Type      string `json:"type"`
-	Address   string `json:"address"`
-	Contact   string `json:"contact"`
-	Phone     string `json:"phone"`
-	Status    int8   `json:"status"`
-	IsDefault int8   `json:"isDefault"`
+	Code         string `json:"code" binding:"required"`
+	Name         string `json:"name" binding:"required"`
+	Type         string `json:"type"`
+	Address      string `json:"address"`
+	Contact      string `json:"contact"`
+	Phone        string `json:"phone"`
+	Status       int8   `json:"status"`
+	IsDefault    int8   `json:"isDefault"`
+	AllowCalcFee int8   `json:"allowCalcFee"`
+}
+
+type GoodsFeeSettingsDTO struct {
+	StoreFee      float64                  `json:"storeFee"`
+	FixedStoreFee float64                  `json:"fixedStoreFee"`
+	PackFee       float64                  `json:"packFee"`
+	ScoreRules    []ScoreWeightRuleDTO     `json:"scoreRules"`
+	QtyCoeffs     []OrderQtyCoeffDTO       `json:"qtyCoeffs"`
+}
+
+type ScoreWeightRuleDTO struct {
+	ID          uint64  `json:"id"`
+	WeightMinG  float64 `json:"weightMinG"`
+	WeightMaxG  float64 `json:"weightMaxG"`
+	ScoreFactor float64 `json:"scoreFactor"`
+	Sort        int     `json:"sort"`
+}
+
+type OrderQtyCoeffDTO struct {
+	ID     uint64  `json:"id"`
+	QtyMin float64 `json:"qtyMin"`
+	QtyMax float64 `json:"qtyMax"`
+	Coeff  float64 `json:"coeff"`
+	Sort   int     `json:"sort"`
+}
+
+type UpdateSkuWeightDTO struct {
+	SkuCode string  `json:"skuCode" binding:"required"`
+	WeightG float64 `json:"weightG" binding:"required"`
+}
+
+type ProfitTrialDTO struct {
+	ID              uint64  `json:"id"`
+	ParentSKU       string  `json:"parentSku"`
+	SKU             string  `json:"sku" binding:"required"`
+	ShopSKU         string  `json:"shopSku"`
+	ShopName        string  `json:"shopName"`
+	SKUName         string  `json:"skuName"`
+	RetailPrice     float64 `json:"retailPrice"`
+	PriceUS         float64 `json:"priceUs"`
+	Price           float64 `json:"price"`
+	CostPrice       float64 `json:"costPrice"`
+	PlatformFreight float64 `json:"platformFreight"`
+	HeadFreight     float64 `json:"headFreight"`
+	Freight         float64 `json:"freight"`
+	PackageFee      float64 `json:"packageFee"`
+	Tariff          float64 `json:"tariff"`
+	Profit          float64 `json:"profit"`
+	ProfitMargin    float64 `json:"profitMargin"`
+	ASIN            string  `json:"asin"`
+	Remark          string  `json:"remark"`
+}
+
+type ProfitCalcMode string
+
+const (
+	ProfitCalcByCost   ProfitCalcMode = "by_cost"   // 按成本算利润
+	ProfitCalcByMargin ProfitCalcMode = "by_margin" // 按利润率反推售价
+)
+
+type ProfitCalcRequest struct {
+	IDs  []uint64       `json:"ids"`
+	Mode ProfitCalcMode `json:"mode"`
+	// Mode=by_margin 时用目标利润率（%）覆盖行上利润率后再反推售价
+	TargetMargin *float64 `json:"targetMargin"`
 }
 
 type LocationDTO struct {

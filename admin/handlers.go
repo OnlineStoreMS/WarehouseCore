@@ -1058,3 +1058,128 @@ func (h *Handlers) ListSuppliers(c *gin.Context) {
 	}
 	response.OK(c, response.PageResult(list, total, page, pageSize))
 }
+
+// ── 商品费用 / 重量检测 / 利润试算 ──
+
+func (h *Handlers) GetGoodsFeeSettings(c *gin.Context) {
+	item, err := h.master(c).GetGoodsFeeSettings()
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
+func (h *Handlers) SaveGoodsFeeSettings(c *gin.Context) {
+	var in dto.GoodsFeeSettingsDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.master(c).SaveGoodsFeeSettings(&in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
+func (h *Handlers) GetSkuByCode(c *gin.Context) {
+	code := c.Query("skuCode")
+	if code == "" {
+		code = c.Query("sku")
+	}
+	item, err := h.master(c).GetSkuByCode(code)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
+func (h *Handlers) UpdateSkuWeight(c *gin.Context) {
+	var in dto.UpdateSkuWeightDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.master(c).UpdateSkuWeightByCode(&in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
+func (h *Handlers) ListProfitTrials(c *gin.Context) {
+	page, pageSize := httputil.ParsePage(c)
+	list, total, err := h.master(c).ListProfitTrials(c.Query("keyword"), page, pageSize)
+	if err != nil {
+		response.Fail(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	response.OK(c, response.PageResult(list, total, page, pageSize))
+}
+
+func (h *Handlers) UpsertProfitTrial(c *gin.Context) {
+	var in dto.ProfitTrialDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.master(c).UpsertProfitTrial(&in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.Created(c, item)
+}
+
+func (h *Handlers) UpdateProfitTrial(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in dto.ProfitTrialDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	in.ID = id
+	item, err := h.master(c).UpsertProfitTrial(&in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
+func (h *Handlers) DeleteProfitTrials(c *gin.Context) {
+	var body struct {
+		IDs []uint64 `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 {
+		response.Fail(c, http.StatusBadRequest, "ids required")
+		return
+	}
+	if err := h.master(c).DeleteProfitTrials(body.IDs); err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
+func (h *Handlers) CalcProfitTrials(c *gin.Context) {
+	var in dto.ProfitCalcRequest
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	list, err := h.master(c).CalcProfitTrials(&in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, list)
+}

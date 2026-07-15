@@ -60,6 +60,10 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.TransferOrder{},
 		&model.TransferItem{},
 		&model.PimSkuMapping{},
+		&model.InvGoodsFeeBase{},
+		&model.InvScoreWeightRule{},
+		&model.InvOrderQtyCoeff{},
+		&model.InvProfitTrial{},
 	); err != nil {
 		return err
 	}

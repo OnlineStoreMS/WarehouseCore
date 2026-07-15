@@ -34,7 +34,7 @@ async function load() {
 onMounted(load)
 
 function openCreate() {
-  form.value = { code: '', name: '', type: 'central', address: '', contact: '', phone: '', isDefault: 0, status: 1 }
+  form.value = { code: '', name: '', type: 'central', address: '', contact: '', phone: '', isDefault: 0, allowCalcFee: 0, status: 1 }
   visible.value = true
 }
 
@@ -94,6 +94,12 @@ function typeLabel(t: string) {
             <span v-else>-</span>
           </template>
         </el-table-column>
+        <el-table-column label="计仓库费" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.allowCalcFee" type="warning" size="small">是</el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
@@ -125,6 +131,9 @@ function typeLabel(t: string) {
         <el-form-item label="电话"><el-input v-model="form.phone" /></el-form-item>
         <el-form-item label="默认仓">
           <el-switch v-model="form.isDefault" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="计仓库费">
+          <el-switch v-model="form.allowCalcFee" :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
       <template #footer>

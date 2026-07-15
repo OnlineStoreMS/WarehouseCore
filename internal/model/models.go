@@ -233,6 +233,7 @@ type Warehouse struct {
 	Phone     string    `gorm:"size:64" json:"phone"`
 	Status    int8      `gorm:"default:1" json:"status"`
 	IsDefault int8      `gorm:"default:0" json:"isDefault"`
+	AllowCalcFee int8   `gorm:"default:0" json:"allowCalcFee"` // 是否允许计算仓库费用（对齐普源）
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -452,3 +453,74 @@ type PimSkuMapping struct {
 }
 
 func (PimSkuMapping) TableName() string { return "pim_sku_mappings" }
+
+// ── 商品费用设置（对齐普源 skuCost）──
+
+// InvGoodsFeeBase 基础费用（每租户一条）
+type InvGoodsFeeBase struct {
+	ID             uint64  `gorm:"primaryKey" json:"id"`
+	TenantID       uint64  `gorm:"uniqueIndex;not null" json:"tenantId"`
+	StoreFee       float64 `gorm:"type:numeric(14,4);default:0" json:"storeFee"`       // 单位系数仓库费用
+	FixedStoreFee  float64 `gorm:"type:numeric(14,4);default:0" json:"fixedStoreFee"`  // 仓库固定费用
+	PackFee        float64 `gorm:"type:numeric(14,4);default:0" json:"packFee"`        // 单位系数打包费用
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+}
+
+func (InvGoodsFeeBase) TableName() string { return "inv_goods_fee_bases" }
+
+// InvScoreWeightRule 按重量区间的商品分值系数
+type InvScoreWeightRule struct {
+	ID          uint64  `gorm:"primaryKey" json:"id"`
+	TenantID    uint64  `gorm:"index;not null" json:"tenantId"`
+	WeightMinG  float64 `gorm:"type:numeric(12,3);default:0" json:"weightMinG"`
+	WeightMaxG  float64 `gorm:"type:numeric(12,3);default:0" json:"weightMaxG"` // 0=不限
+	ScoreFactor float64 `gorm:"type:numeric(10,4);default:1" json:"scoreFactor"`
+	Sort        int     `gorm:"default:0" json:"sort"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+func (InvScoreWeightRule) TableName() string { return "inv_score_weight_rules" }
+
+// InvOrderQtyCoeff 按订单商品数量区间的数量系数
+type InvOrderQtyCoeff struct {
+	ID        uint64  `gorm:"primaryKey" json:"id"`
+	TenantID  uint64  `gorm:"index;not null" json:"tenantId"`
+	QtyMin    float64 `gorm:"type:numeric(14,4);default:0" json:"qtyMin"`
+	QtyMax    float64 `gorm:"type:numeric(14,4);default:0" json:"qtyMax"` // 0=不限
+	Coeff     float64 `gorm:"type:numeric(10,4);default:1" json:"coeff"`
+	Sort      int     `gorm:"default:0" json:"sort"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func (InvOrderQtyCoeff) TableName() string { return "inv_order_qty_coeffs" }
+
+// InvProfitTrial 商品利润试算行（对齐普源 commzxz）
+type InvProfitTrial struct {
+	ID              uint64  `gorm:"primaryKey" json:"id"`
+	TenantID        uint64  `gorm:"index;not null" json:"tenantId"`
+	ParentSKU       string  `gorm:"size:64" json:"parentSku"`
+	SKU             string  `gorm:"size:64;not null" json:"sku"`
+	ShopSKU         string  `gorm:"size:64" json:"shopSku"`
+	ShopName        string  `gorm:"size:128" json:"shopName"`
+	SKUName         string  `gorm:"size:256" json:"skuName"`
+	RetailPrice     float64 `gorm:"type:numeric(14,4);default:0" json:"retailPrice"`     // 零售价格($)
+	PriceUS         float64 `gorm:"type:numeric(14,4);default:0" json:"priceUs"`         // 产品售价($)
+	Price           float64 `gorm:"type:numeric(14,4);default:0" json:"price"`           // 产品售价(￥)
+	CostPrice       float64 `gorm:"type:numeric(14,4);default:0" json:"costPrice"`       // 商品成本(￥)
+	PlatformFreight float64 `gorm:"type:numeric(14,4);default:0" json:"platformFreight"` // 平台交易费
+	HeadFreight     float64 `gorm:"type:numeric(14,4);default:0" json:"headFreight"`     // 头程运费
+	Freight         float64 `gorm:"type:numeric(14,4);default:0" json:"freight"`         // 运费
+	PackageFee      float64 `gorm:"type:numeric(14,4);default:0" json:"packageFee"`      // 包装费
+	Tariff          float64 `gorm:"type:numeric(14,4);default:0" json:"tariff"`          // 关税
+	Profit          float64 `gorm:"type:numeric(14,4);default:0" json:"profit"`
+	ProfitMargin    float64 `gorm:"type:numeric(10,4);default:0" json:"profitMargin"` // %
+	ASIN            string  `gorm:"size:64" json:"asin"`
+	Remark          string  `gorm:"size:512" json:"remark"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+}
+
+func (InvProfitTrial) TableName() string { return "inv_profit_trials" }
