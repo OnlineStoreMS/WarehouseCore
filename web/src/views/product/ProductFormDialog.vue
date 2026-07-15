@@ -476,7 +476,7 @@ async function save() {
                 </el-col>
                 <el-col :span="8">
                   <el-form-item label="分值系数">
-                    <el-input-number v-model="form.scoreFactor" :min="0" :step="0.1" style="width: 100%" />
+                    <el-input-number v-model="form.scoreFactor" :min="0" :step="0.1" :controls="false" style="width: 100%" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
@@ -602,17 +602,17 @@ async function save() {
             </el-col>
             <el-col :span="8">
               <el-form-item label="申报重量(g)">
-                <el-input-number v-model="form.declareWeightG" :min="0" :precision="1" style="width: 100%" />
+                <el-input-number v-model="form.declareWeightG" :min="0" :precision="1" :controls="false" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="申报价值(USD)">
-                <el-input-number v-model="form.declaredValue" :min="0" :precision="4" style="width: 100%" />
+                <el-input-number v-model="form.declaredValue" :min="0" :precision="4" :controls="false" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="出口国申报价">
-                <el-input-number v-model="form.exportDeclaredValue" :min="0" :precision="4" style="width: 100%" />
+                <el-input-number v-model="form.exportDeclaredValue" :min="0" :precision="4" :controls="false" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
@@ -638,12 +638,12 @@ async function save() {
             </el-col>
             <el-col :span="12">
               <el-form-item label="最低采购价(CNY)">
-                <el-input-number v-model="form.minPurchasePrice" :min="0" :precision="4" style="width: 100%" />
+                <el-input-number v-model="form.minPurchasePrice" :min="0" :precision="4" :controls="false" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="采购最小订货量">
-                <el-input-number v-model="form.stockMinAmount" :min="0" style="width: 100%" />
+                <el-input-number v-model="form.stockMinAmount" :min="0" :controls="false" style="width: 100%" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -696,25 +696,25 @@ async function save() {
             </el-col>
             <el-col :span="8">
               <el-form-item label="内包装成本">
-                <el-input-number v-model="form.packFee" :min="0" :precision="4" style="width: 100%" />
+                <el-input-number v-model="form.packFee" :min="0" :precision="4" :controls="false" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="最小包装数">
-                <el-input-number v-model="form.packageCount" :min="0" style="width: 100%" />
+                <el-input-number v-model="form.packageCount" :min="0" :controls="false" style="width: 100%" />
               </el-form-item>
             </el-col>
-            <el-col :span="8"><el-form-item label="外箱长(cm)"><el-input-number v-model="form.outLong" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="外箱宽(cm)"><el-input-number v-model="form.outWide" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="外箱高(cm)"><el-input-number v-model="form.outHigh" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="外箱毛重(kg)"><el-input-number v-model="form.outGrossWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="外箱净重(kg)"><el-input-number v-model="form.outNetWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱长(cm)"><el-input-number v-model="form.outLong" :min="0" :precision="2" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱宽(cm)"><el-input-number v-model="form.outWide" :min="0" :precision="2" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱高(cm)"><el-input-number v-model="form.outHigh" :min="0" :precision="2" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱毛重(kg)"><el-input-number v-model="form.outGrossWeight" :min="0" :precision="3" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱净重(kg)"><el-input-number v-model="form.outNetWeight" :min="0" :precision="3" :controls="false" style="width: 100%" /></el-form-item></el-col>
             <el-col :span="8" />
-            <el-col :span="8"><el-form-item label="内盒长(cm)"><el-input-number v-model="form.inLong" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="内盒宽(cm)"><el-input-number v-model="form.inWide" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="内盒高(cm)"><el-input-number v-model="form.inHigh" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="内盒毛重(kg)"><el-input-number v-model="form.inGrossWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="内盒净重(kg)"><el-input-number v-model="form.inNetWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒长(cm)"><el-input-number v-model="form.inLong" :min="0" :precision="2" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒宽(cm)"><el-input-number v-model="form.inWide" :min="0" :precision="2" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒高(cm)"><el-input-number v-model="form.inHigh" :min="0" :precision="2" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒毛重(kg)"><el-input-number v-model="form.inGrossWeight" :min="0" :precision="3" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒净重(kg)"><el-input-number v-model="form.inNetWeight" :min="0" :precision="3" :controls="false" style="width: 100%" /></el-form-item></el-col>
             <el-col :span="24">
               <el-form-item label="包装事项"><el-input v-model="form.packMsg" type="textarea" :rows="2" /></el-form-item>
             </el-col>
@@ -735,11 +735,11 @@ async function save() {
             <el-col :span="8"><el-form-item label="款式"><el-input v-model="form.style" /></el-form-item></el-col>
             <el-col :span="8"><el-form-item label="季节"><el-input v-model="form.season" /></el-form-item></el-col>
             <el-col :span="8"><el-form-item label="单位"><el-input v-model="form.unit" placeholder="如 PCS" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="零售价格"><el-input-number v-model="form.retailPrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="批发价格"><el-input-number v-model="form.batchPrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="最高售价"><el-input-number v-model="form.maxSalePrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="最低售价"><el-input-number v-model="form.minSalePrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
-            <el-col :span="8"><el-form-item label="市场参考价"><el-input-number v-model="form.marketPrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="零售价格"><el-input-number v-model="form.retailPrice" :min="0" :precision="4" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="批发价格"><el-input-number v-model="form.batchPrice" :min="0" :precision="4" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="最高售价"><el-input-number v-model="form.maxSalePrice" :min="0" :precision="4" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="最低售价"><el-input-number v-model="form.minSalePrice" :min="0" :precision="4" :controls="false" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="市场参考价"><el-input-number v-model="form.marketPrice" :min="0" :precision="4" :controls="false" style="width: 100%" /></el-form-item></el-col>
           </el-row>
         </el-form>
         <div class="section-title sku-title">
