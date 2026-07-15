@@ -101,7 +101,8 @@ func (h *Handlers) DeleteCategory(c *gin.Context) {
 func (h *Handlers) ListProducts(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
 	catID, _ := strconv.ParseUint(c.Query("categoryId"), 10, 64)
-	list, total, err := h.master(c).ListProducts(c.Query("keyword"), catID, page, pageSize)
+	uncategorized := c.Query("uncategorized") == "1" || c.Query("uncategorized") == "true"
+	list, total, err := h.master(c).ListProducts(c.Query("keyword"), catID, uncategorized, c.Query("productType"), page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -173,7 +174,9 @@ func (h *Handlers) DeleteProduct(c *gin.Context) {
 
 func (h *Handlers) ListSkus(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.master(c).ListSkus(c.Query("keyword"), c.Query("productType"), page, pageSize)
+	catID, _ := strconv.ParseUint(c.Query("categoryId"), 10, 64)
+	uncategorized := c.Query("uncategorized") == "1" || c.Query("uncategorized") == "true"
+	list, total, err := h.master(c).ListSkus(c.Query("keyword"), c.Query("productType"), catID, uncategorized, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return

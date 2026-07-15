@@ -45,6 +45,35 @@ type InvSkuDTO struct {
 	PimSkuID          *uint64 `json:"pimSkuId"`
 }
 
+// SkuListRow 库存SKU 明细行（含父商品信息，对齐普源「库存SKU明细」）
+type SkuListRow struct {
+	ID                uint64    `json:"id"`
+	TenantID          uint64    `json:"tenantId"`
+	ParentID          uint64    `json:"parentId"`
+	SkuCode           string    `json:"skuCode"`
+	Pic               string    `json:"pic"`
+	Status            string    `json:"status"`
+	ProductType       string    `json:"productType"`
+	PickName          string    `json:"pickName"`
+	Style1            string    `json:"style1"`
+	Style2            string    `json:"style2"`
+	Style3            string    `json:"style3"`
+	WeightG           float64   `json:"weightG"`
+	LastPurchasePrice float64   `json:"lastPurchasePrice"`
+	MinPurchasePrice  float64   `json:"minPurchasePrice"`
+	RetailPrice       float64   `json:"retailPrice"`
+	Description       string    `json:"description"`
+	UPC               string    `json:"upc"`
+	ASIN              string    `json:"asin"`
+	SupplierItemNo    string    `json:"supplierItemNo"`
+	PimSkuID          *uint64   `json:"pimSkuId"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+	ParentSkuCode     string    `json:"parentSku"`
+	ProductName       string    `json:"productName"`
+	CategoryID        uint64    `json:"categoryId"`
+}
+
 type BomDTO struct {
 	ParentSkuID uint64       `json:"parentSkuId" binding:"required"`
 	BomType     string       `json:"bomType" binding:"required"`

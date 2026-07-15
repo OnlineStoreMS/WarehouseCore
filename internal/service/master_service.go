@@ -96,14 +96,22 @@ func (s *MasterService) DeleteCategory(id uint64) error {
 
 // ── Products ──
 
-func (s *MasterService) ListProducts(keyword string, categoryID uint64, page, pageSize int) ([]model.InvProduct, int64, error) {
+func (s *MasterService) ListProducts(keyword string, categoryID uint64, uncategorized bool, productType string, page, pageSize int) ([]model.InvProduct, int64, error) {
 	q := s.db().Model(&model.InvProduct{})
 	if keyword != "" {
 		like := "%" + keyword + "%"
 		q = q.Where("parent_sku ILIKE ? OR name ILIKE ?", like, like)
 	}
-	if categoryID > 0 {
+	if uncategorized {
+		q = q.Where("category_id = 0")
+	} else if categoryID > 0 {
 		q = q.Where("category_id = ?", categoryID)
+	}
+	if productType != "" {
+		q = q.Where(
+			"EXISTS (SELECT 1 FROM inv_skus s WHERE s.parent_id = inv_products.id AND s.tenant_id = inv_products.tenant_id AND s.product_type = ?)",
+			productType,
+		)
 	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
@@ -214,21 +222,30 @@ func (s *MasterService) DeleteProduct(id uint64) error {
 
 // ── SKUs ──
 
-func (s *MasterService) ListSkus(keyword, productType string, page, pageSize int) ([]model.InvSku, int64, error) {
-	q := s.db().Model(&model.InvSku{})
+func (s *MasterService) ListSkus(keyword, productType string, categoryID uint64, uncategorized bool, page, pageSize int) ([]dto.SkuListRow, int64, error) {
+	q := s.repos.DB.Table("inv_skus AS s").
+		Select("s.*, p.parent_sku AS parent_sku_code, p.name AS product_name, p.category_id AS category_id").
+		Joins("JOIN inv_products p ON p.id = s.parent_id AND p.tenant_id = s.tenant_id").
+		Where("s.tenant_id = ?", s.tenantID)
 	if keyword != "" {
 		like := "%" + keyword + "%"
-		q = q.Where("sku_code ILIKE ? OR pick_name ILIKE ? OR upc ILIKE ? OR asin ILIKE ?", like, like, like, like)
+		q = q.Where("s.sku_code ILIKE ? OR s.pick_name ILIKE ? OR s.upc ILIKE ? OR s.asin ILIKE ? OR p.parent_sku ILIKE ? OR p.name ILIKE ?",
+			like, like, like, like, like, like)
 	}
 	if productType != "" {
-		q = q.Where("product_type = ?", productType)
+		q = q.Where("s.product_type = ?", productType)
+	}
+	if uncategorized {
+		q = q.Where("p.category_id = 0")
+	} else if categoryID > 0 {
+		q = q.Where("p.category_id = ?", categoryID)
 	}
 	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	if err := q.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	var list []model.InvSku
-	err := q.Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	var list []dto.SkuListRow
+	err := q.Order("s.id desc").Offset((page - 1) * pageSize).Limit(pageSize).Scan(&list).Error
 	return list, total, err
 }
 

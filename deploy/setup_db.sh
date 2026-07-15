@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
-# 在已有 Postgres 上创建 warehousecore 角色与库（幂等）
 set -euo pipefail
-HOST="${POSTGRES_HOST:-127.0.0.1}"
-PORT="${POSTGRES_PORT:-5432}"
-ADMIN_USER="${POSTGRES_USER:-postgres}"
-PASS="${WAREHOUSECORE_DB_PASSWORD:-warehousecore}"
 
-psql -h "$HOST" -p "$PORT" -U "$ADMIN_USER" -d postgres <<SQL
+APP_PASSWORD="${1:?usage: setup_db.sh APP_PASSWORD}"
+DB_NAME="warehousecore"
+DB_USER="warehousecore"
+
+psql -v ON_ERROR_STOP=1 postgres <<SQL
 DO \$\$
 BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'warehousecore') THEN
-    CREATE ROLE warehousecore LOGIN PASSWORD '${PASS}';
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${DB_USER}') THEN
+    CREATE ROLE ${DB_USER} LOGIN PASSWORD '${APP_PASSWORD}';
   END IF;
 END
 \$\$;
-SELECT 'CREATE DATABASE warehousecore OWNER warehousecore'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'warehousecore')\gexec
-GRANT ALL PRIVILEGES ON DATABASE warehousecore TO warehousecore;
+SELECT 'CREATE DATABASE ${DB_NAME} OWNER ${DB_USER}'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB_NAME}')\gexec
+GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};
 SQL
-echo "warehousecore database ready"
+
+echo "database ${DB_NAME} ready for user ${DB_USER}"
+echo ""
+echo "若表曾由 postgres 超级用户创建，请再执行一次权限修复："
+echo "  ./deploy/fix_db_permissions.sh"
