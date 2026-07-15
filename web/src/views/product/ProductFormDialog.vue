@@ -755,7 +755,7 @@ async function save() {
                 filterable
                 size="small"
                 style="width: 100%"
-                @change="(v) => onLanguageChange(row, v)"
+                @change="(v: string) => onLanguageChange(row, v)"
               >
                 <el-option
                   v-for="o in languageOptions"
