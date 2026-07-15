@@ -53,6 +53,9 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.POST("/locations", h.CreateLocation)
 	g.PUT("/locations/:id", h.UpdateLocation)
 	g.DELETE("/locations/:id", h.DeleteLocation)
+	g.GET("/locations/:id/skus", h.ListLocationSkus)
+	g.POST("/locations/:id/skus", h.BindLocationSku)
+	g.DELETE("/location-skus/:id", h.UnbindLocationSku)
 
 	// Stock queries
 	g.GET("/stock/balances", h.QueryBalances)

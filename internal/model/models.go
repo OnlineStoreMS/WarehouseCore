@@ -240,38 +240,61 @@ const (
 )
 
 type Warehouse struct {
-	ID        uint64    `gorm:"primaryKey" json:"id"`
-	TenantID  uint64    `gorm:"index;not null" json:"tenantId"`
-	Code      string    `gorm:"size:64;not null" json:"code"`
-	Name      string    `gorm:"size:128;not null" json:"name"`
-	Type      string    `gorm:"size:32;default:central" json:"type"`
-	Address   string    `gorm:"size:512" json:"address"`
-	Contact   string    `gorm:"size:128" json:"contact"`
-	Phone     string    `gorm:"size:64" json:"phone"`
-	Status    int8      `gorm:"default:1" json:"status"`
-	IsDefault int8      `gorm:"default:0" json:"isDefault"`
-	AllowCalcFee int8   `gorm:"default:0" json:"allowCalcFee"` // 是否允许计算仓库费用（对齐普源）
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID                 uint64    `gorm:"primaryKey" json:"id"`
+	TenantID           uint64    `gorm:"index;not null" json:"tenantId"`
+	Code               string    `gorm:"size:64;not null" json:"code"`
+	Name               string    `gorm:"size:128;not null" json:"name"`
+	Type               string    `gorm:"size:32;default:central" json:"type"` // central=自建仓 / return / transit
+	Address            string    `gorm:"size:512" json:"address"`
+	Contact            string    `gorm:"size:128" json:"contact"`
+	Phone              string    `gorm:"size:64" json:"phone"`
+	Country            string    `gorm:"size:64" json:"country"`             // 所在国家（对齐普源）
+	Remark             string    `gorm:"size:512" json:"remark"`
+	Status             int8      `gorm:"default:1" json:"status"`
+	IsDefault          int8      `gorm:"default:0" json:"isDefault"`
+	AllowCalcFee       int8      `gorm:"default:0" json:"allowCalcFee"`       // 计算仓库费用
+	AllowNegativeStock int8      `gorm:"default:0" json:"allowNegativeStock"` // 允许负库存
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+	// 列表附加（不落库）
+	LocationInfo string `gorm:"-" json:"locationInfo,omitempty"` // 在用:x; 空闲:y
 }
 
 func (Warehouse) TableName() string { return "warehouses" }
 
 type WarehouseLocation struct {
-	ID          uint64    `gorm:"primaryKey" json:"id"`
-	TenantID    uint64    `gorm:"index;not null" json:"tenantId"`
-	WarehouseID uint64    `gorm:"index;not null" json:"warehouseId"`
-	Code        string    `gorm:"size:64;not null" json:"code"`
-	Zone        string    `gorm:"size:64" json:"zone"`
-	Aisle       string    `gorm:"size:64" json:"aisle"`
-	Shelf       string    `gorm:"size:64" json:"shelf"`
-	Bin         string    `gorm:"size:64" json:"bin"`
-	Status      int8      `gorm:"default:1" json:"status"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID           uint64    `gorm:"primaryKey" json:"id"`
+	TenantID     uint64    `gorm:"index;not null" json:"tenantId"`
+	WarehouseID  uint64    `gorm:"index;not null" json:"warehouseId"`
+	Code         string    `gorm:"size:64;not null" json:"code"` // 库位名称
+	Zone         string    `gorm:"size:64" json:"zone"`
+	Aisle        string    `gorm:"size:64" json:"aisle"`
+	Shelf        string    `gorm:"size:64" json:"shelf"`
+	Bin          string    `gorm:"size:64" json:"bin"`
+	PickOrder    int       `gorm:"default:0" json:"pickOrder"`       // 拣货顺序
+	PickPosition string    `gorm:"size:128" json:"pickPosition"`     // 拣货位置
+	Remark       string    `gorm:"size:512" json:"remark"`
+	Status       int8      `gorm:"default:1" json:"status"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	WarehouseName string   `gorm:"-" json:"warehouseName,omitempty"`
 }
 
 func (WarehouseLocation) TableName() string { return "warehouse_locations" }
+
+// InvLocationSku 库位绑定库存SKU（对齐普源库位管理）
+type InvLocationSku struct {
+	ID          uint64    `gorm:"primaryKey" json:"id"`
+	TenantID    uint64    `gorm:"index;not null" json:"tenantId"`
+	WarehouseID uint64    `gorm:"index;not null" json:"warehouseId"`
+	LocationID  uint64    `gorm:"index;not null" json:"locationId"`
+	InvSkuID    uint64    `gorm:"index;not null" json:"invSkuId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	SkuCode     string    `gorm:"-" json:"skuCode,omitempty"`
+	PickName    string    `gorm:"-" json:"pickName,omitempty"`
+}
+
+func (InvLocationSku) TableName() string { return "inv_location_skus" }
 
 // ── 库存结存 / 流水 ──
 

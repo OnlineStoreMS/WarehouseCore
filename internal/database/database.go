@@ -50,6 +50,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.InvBomItem{},
 		&model.Warehouse{},
 		&model.WarehouseLocation{},
+		&model.InvLocationSku{},
 		&model.InvBalance{},
 		&model.StockMovement{},
 		&model.OtherInboundOrder{},
@@ -85,6 +86,7 @@ func ensureIndexes(db *gorm.DB) error {
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_bom_tenant_parent ON inv_bom_headers (tenant_id, parent_sku_id);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_wh_tenant_code ON warehouses (tenant_id, code);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_loc_wh_code ON warehouse_locations (tenant_id, warehouse_id, code);
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_loc_sku_unique ON inv_location_skus (tenant_id, location_id, inv_sku_id);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_bal_unique ON inv_balances (tenant_id, warehouse_id, location_id, inv_sku_id);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_oin_tenant_no ON other_inbound_orders (tenant_id, doc_no);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_oout_tenant_no ON other_outbound_orders (tenant_id, doc_no);

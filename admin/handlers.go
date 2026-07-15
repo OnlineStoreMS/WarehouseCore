@@ -573,6 +573,52 @@ func (h *Handlers) DeleteLocation(c *gin.Context) {
 	response.OK(c, nil)
 }
 
+func (h *Handlers) ListLocationSkus(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	list, err := h.master(c).ListLocationSkus(id)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, list)
+}
+
+func (h *Handlers) BindLocationSku(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in dto.LocationSkuBindDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.master(c).BindLocationSku(id, in.InvSkuID)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.Created(c, item)
+}
+
+func (h *Handlers) UnbindLocationSku(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	if err := h.master(c).UnbindLocationSku(id); err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, nil)
+}
+
 // ── Stock queries ──
 
 func (h *Handlers) QueryBalances(c *gin.Context) {

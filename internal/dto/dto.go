@@ -219,15 +219,18 @@ type BomItemDTO struct {
 }
 
 type WarehouseDTO struct {
-	Code         string `json:"code" binding:"required"`
-	Name         string `json:"name" binding:"required"`
-	Type         string `json:"type"`
-	Address      string `json:"address"`
-	Contact      string `json:"contact"`
-	Phone        string `json:"phone"`
-	Status       int8   `json:"status"`
-	IsDefault    int8   `json:"isDefault"`
-	AllowCalcFee int8   `json:"allowCalcFee"`
+	Code               string `json:"code" binding:"required"`
+	Name               string `json:"name" binding:"required"`
+	Type               string `json:"type"`
+	Address            string `json:"address"`
+	Contact            string `json:"contact"`
+	Phone              string `json:"phone"`
+	Country            string `json:"country"`
+	Remark             string `json:"remark"`
+	Status             int8   `json:"status"`
+	IsDefault          int8   `json:"isDefault"`
+	AllowCalcFee       int8   `json:"allowCalcFee"`
+	AllowNegativeStock int8   `json:"allowNegativeStock"`
 }
 
 type GoodsFeeSettingsDTO struct {
@@ -296,13 +299,20 @@ type ProfitCalcRequest struct {
 }
 
 type LocationDTO struct {
-	WarehouseID uint64 `json:"warehouseId" binding:"required"`
-	Code        string `json:"code" binding:"required"`
-	Zone        string `json:"zone"`
-	Aisle       string `json:"aisle"`
-	Shelf       string `json:"shelf"`
-	Bin         string `json:"bin"`
-	Status      int8   `json:"status"`
+	WarehouseID  uint64 `json:"warehouseId" binding:"required"`
+	Code         string `json:"code" binding:"required"`
+	Zone         string `json:"zone"`
+	Aisle        string `json:"aisle"`
+	Shelf        string `json:"shelf"`
+	Bin          string `json:"bin"`
+	PickOrder    int    `json:"pickOrder"`
+	PickPosition string `json:"pickPosition"`
+	Remark       string `json:"remark"`
+	Status       int8   `json:"status"`
+}
+
+type LocationSkuBindDTO struct {
+	InvSkuID uint64 `json:"invSkuId" binding:"required"`
 }
 
 type DocItemDTO struct {

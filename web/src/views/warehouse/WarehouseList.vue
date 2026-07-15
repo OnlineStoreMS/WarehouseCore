@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Search } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
 
 const loading = ref(false)
@@ -12,9 +12,11 @@ const pageSize = ref(20)
 const visible = ref(false)
 const form = ref<any>({})
 const showDisabled = ref(false)
+const keyword = ref('')
 
+/** 对齐普源：自建仓库 / 退货仓 / 中转仓 */
 const typeOptions = [
-  { label: '中心仓', value: 'central' },
+  { label: '自建仓库', value: 'central' },
   { label: '退货仓', value: 'return' },
   { label: '中转仓', value: 'transit' },
 ]
@@ -27,7 +29,11 @@ const displayList = computed(() => {
 async function load() {
   loading.value = true
   try {
-    const res = await api.listWarehouses({ page: page.value, pageSize: pageSize.value })
+    const res = await api.listWarehouses({
+      page: page.value,
+      pageSize: pageSize.value,
+      keyword: keyword.value || undefined,
+    })
     list.value = res.list
     total.value = res.total
   } catch (e) {
@@ -39,8 +45,26 @@ async function load() {
 
 onMounted(load)
 
+function search() {
+  page.value = 1
+  load()
+}
+
 function openCreate() {
-  form.value = { code: '', name: '', type: 'central', address: '', contact: '', phone: '', isDefault: 0, allowCalcFee: 0, status: 1 }
+  form.value = {
+    code: '',
+    name: '',
+    type: 'central',
+    address: '',
+    contact: '',
+    phone: '',
+    country: '',
+    remark: '',
+    isDefault: 0,
+    allowCalcFee: 0,
+    allowNegativeStock: 0,
+    status: 1,
+  }
   visible.value = true
 }
 
@@ -51,11 +75,8 @@ function openEdit(row: any) {
 
 async function save() {
   try {
-    if (form.value.id) {
-      await api.updateWarehouse(form.value.id, form.value)
-    } else {
-      await api.createWarehouse(form.value)
-    }
+    if (form.value.id) await api.updateWarehouse(form.value.id, form.value)
+    else await api.createWarehouse(form.value)
     ElMessage.success('已保存')
     visible.value = false
     await load()
@@ -82,14 +103,23 @@ function typeLabel(t: string) {
       <template #header>
         <div class="hdr">
           <span>仓库设置</span>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新建仓库</el-button>
+          <el-button type="primary" :icon="Plus" @click="openCreate">新增仓库</el-button>
         </div>
       </template>
       <div class="toolbar">
-        <el-checkbox v-model="showDisabled">显示停用</el-checkbox>
+        <el-checkbox v-model="showDisabled" @change="search">显示停用仓库</el-checkbox>
+        <el-input
+          v-model="keyword"
+          clearable
+          placeholder="仓库编码/名称"
+          :prefix-icon="Search"
+          style="width: 220px"
+          @change="search"
+        />
+        <el-button type="primary" @click="search">查询</el-button>
       </div>
       <el-table :data="displayList" border stripe>
-        <el-table-column label="仓库类型" width="100">
+        <el-table-column label="仓库类型" width="110">
           <template #default="{ row }">{{ typeLabel(row.type) }}</template>
         </el-table-column>
         <el-table-column prop="code" label="仓库编码" width="120" />
@@ -100,23 +130,30 @@ function typeLabel(t: string) {
             <span v-else>-</span>
           </template>
         </el-table-column>
+        <el-table-column label="允许负库存" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.allowNegativeStock" type="danger" size="small">是</el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="计算仓库费用" width="120" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.allowCalcFee" type="warning" size="small">是</el-tag>
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="address" label="仓库地址" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="contact" label="联系人" width="100" />
-        <el-table-column prop="phone" label="电话" width="130" />
-        <el-table-column label="仓库状态" width="100">
+        <el-table-column prop="country" label="所在国家" width="100" show-overflow-tooltip />
+        <el-table-column prop="address" label="仓库地址" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="locationInfo" label="库位信息" width="140" />
+        <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
+        <el-table-column label="仓库状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
               {{ row.status === 1 ? '启用' : '停用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="danger" @click="remove(row)">删除</el-button>
@@ -133,8 +170,8 @@ function typeLabel(t: string) {
       />
     </el-card>
 
-    <el-dialog v-model="visible" :title="form.id ? '编辑仓库' : '新建仓库'" width="560px">
-      <el-form :model="form" label-width="110px">
+    <el-dialog v-model="visible" :title="form.id ? '编辑仓库' : '新增仓库'" width="580px">
+      <el-form :model="form" label-width="120px">
         <el-form-item label="仓库编码" required><el-input v-model="form.code" /></el-form-item>
         <el-form-item label="仓库名称" required><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="仓库类型">
@@ -142,11 +179,16 @@ function typeLabel(t: string) {
             <el-option v-for="o in typeOptions" :key="o.value" :label="o.label" :value="o.value" />
           </el-select>
         </el-form-item>
+        <el-form-item label="所在国家"><el-input v-model="form.country" placeholder="如 CN" /></el-form-item>
         <el-form-item label="仓库地址"><el-input v-model="form.address" /></el-form-item>
         <el-form-item label="联系人"><el-input v-model="form.contact" /></el-form-item>
         <el-form-item label="电话"><el-input v-model="form.phone" /></el-form-item>
+        <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" :rows="2" /></el-form-item>
         <el-form-item label="默认仓库">
           <el-switch v-model="form.isDefault" :active-value="1" :inactive-value="0" />
+        </el-form-item>
+        <el-form-item label="允许负库存">
+          <el-switch v-model="form.allowNegativeStock" :active-value="1" :inactive-value="0" />
         </el-form-item>
         <el-form-item label="计算仓库费用">
           <el-switch v-model="form.allowCalcFee" :active-value="1" :inactive-value="0" />
@@ -165,6 +207,6 @@ function typeLabel(t: string) {
 
 <style scoped>
 .hdr { display: flex; justify-content: space-between; align-items: center; }
-.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .pager { margin-top: 16px; justify-content: flex-end; }
 </style>

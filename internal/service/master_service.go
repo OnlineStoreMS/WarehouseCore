@@ -1031,7 +1031,57 @@ func (s *MasterService) ListWarehouses(keyword string, page, pageSize int) ([]mo
 	}
 	var list []model.Warehouse
 	err := q.Order("is_default desc, id asc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	if err != nil {
+		return nil, 0, err
+	}
+	s.attachWarehouseLocationInfo(list)
+	return list, total, nil
+}
+
+func (s *MasterService) attachWarehouseLocationInfo(list []model.Warehouse) {
+	if len(list) == 0 {
+		return
+	}
+	ids := make([]uint64, len(list))
+	for i := range list {
+		ids[i] = list[i].ID
+	}
+	type locRow struct {
+		ID          uint64
+		WarehouseID uint64
+	}
+	var locs []locRow
+	_ = s.db().Model(&model.WarehouseLocation{}).Select("id, warehouse_id").
+		Where("tenant_id = ? AND warehouse_id IN ?", s.tenantID, ids).Find(&locs)
+	locIDs := make([]uint64, 0, len(locs))
+	whLocs := map[uint64][]uint64{}
+	for _, l := range locs {
+		locIDs = append(locIDs, l.ID)
+		whLocs[l.WarehouseID] = append(whLocs[l.WarehouseID], l.ID)
+	}
+	inUse := map[uint64]struct{}{}
+	if len(locIDs) > 0 {
+		var used []uint64
+		_ = s.repos.DB.Model(&model.InvBalance{}).
+			Select("DISTINCT location_id").
+			Where("tenant_id = ? AND location_id IN ? AND on_hand <> 0", s.tenantID, locIDs).
+			Pluck("location_id", &used)
+		for _, id := range used {
+			inUse[id] = struct{}{}
+		}
+	}
+	for i := range list {
+		locsOfWh := whLocs[list[i].ID]
+		usedCnt, idleCnt := 0, 0
+		for _, lid := range locsOfWh {
+			if _, ok := inUse[lid]; ok {
+				usedCnt++
+			} else {
+				idleCnt++
+			}
+		}
+		list[i].LocationInfo = fmt.Sprintf("在用:%d; 空闲:%d", usedCnt, idleCnt)
+	}
 }
 
 func (s *MasterService) CreateWarehouse(in *dto.WarehouseDTO) (*model.Warehouse, error) {
@@ -1040,16 +1090,19 @@ func (s *MasterService) CreateWarehouse(in *dto.WarehouseDTO) (*model.Warehouse,
 		wt = model.WarehouseTypeCentral
 	}
 	item := &model.Warehouse{
-		TenantID:     s.tenantID,
-		Code:         strings.TrimSpace(in.Code),
-		Name:         strings.TrimSpace(in.Name),
-		Type:         wt,
-		Address:      in.Address,
-		Contact:      in.Contact,
-		Phone:        in.Phone,
-		Status:       statusOrDefault(in.Status),
-		IsDefault:    in.IsDefault,
-		AllowCalcFee: in.AllowCalcFee,
+		TenantID:           s.tenantID,
+		Code:               strings.TrimSpace(in.Code),
+		Name:               strings.TrimSpace(in.Name),
+		Type:               wt,
+		Address:            in.Address,
+		Contact:            in.Contact,
+		Phone:              in.Phone,
+		Country:            strings.TrimSpace(in.Country),
+		Remark:             strings.TrimSpace(in.Remark),
+		Status:             statusOrDefault(in.Status),
+		IsDefault:          in.IsDefault,
+		AllowCalcFee:       in.AllowCalcFee,
+		AllowNegativeStock: in.AllowNegativeStock,
 	}
 	err := s.repos.DB.Transaction(func(tx *gorm.DB) error {
 		if item.IsDefault == 1 {
@@ -1090,9 +1143,12 @@ func (s *MasterService) UpdateWarehouse(id uint64, in *dto.WarehouseDTO) (*model
 	item.Address = in.Address
 	item.Contact = in.Contact
 	item.Phone = in.Phone
+	item.Country = strings.TrimSpace(in.Country)
+	item.Remark = strings.TrimSpace(in.Remark)
 	item.Status = statusOrDefault(in.Status)
 	item.IsDefault = in.IsDefault
 	item.AllowCalcFee = in.AllowCalcFee
+	item.AllowNegativeStock = in.AllowNegativeStock
 	err := s.repos.DB.Transaction(func(tx *gorm.DB) error {
 		if item.IsDefault == 1 {
 			if e := tx.Model(&model.Warehouse{}).Where("tenant_id = ? AND id <> ?", s.tenantID, id).Update("is_default", 0).Error; e != nil {
@@ -1117,6 +1173,9 @@ func (s *MasterService) DeleteWarehouse(id uint64) error {
 		return ErrBadRequest
 	}
 	return s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("tenant_id = ? AND warehouse_id = ?", s.tenantID, id).Delete(&model.InvLocationSku{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Where("tenant_id = ? AND warehouse_id = ?", s.tenantID, id).Delete(&model.WarehouseLocation{}).Error; err != nil {
 			return err
 		}
@@ -1140,15 +1199,51 @@ func (s *MasterService) ListLocations(warehouseID uint64, keyword string, page, 
 	}
 	if keyword != "" {
 		like := "%" + keyword + "%"
-		q = q.Where("code ILIKE ?", like)
+		q = q.Where("code ILIKE ? OR pick_position ILIKE ? OR remark ILIKE ?", like, like, like)
 	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	var list []model.WarehouseLocation
-	err := q.Order("warehouse_id asc, code asc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	err := q.Order("pick_order asc, warehouse_id asc, code asc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	whIDs := map[uint64]struct{}{}
+	for _, l := range list {
+		whIDs[l.WarehouseID] = struct{}{}
+	}
+	ids := make([]uint64, 0, len(whIDs))
+	for id := range whIDs {
+		ids = append(ids, id)
+	}
+	nameMap := map[uint64]string{}
+	if len(ids) > 0 {
+		var whs []model.Warehouse
+		_ = s.db().Select("id, name").Where("tenant_id = ? AND id IN ?", s.tenantID, ids).Find(&whs)
+		for _, w := range whs {
+			nameMap[w.ID] = w.Name
+		}
+	}
+	for i := range list {
+		list[i].WarehouseName = nameMap[list[i].WarehouseID]
+		if list[i].PickPosition == "" {
+			list[i].PickPosition = composePickPosition(list[i])
+		}
+	}
+	return list, total, nil
+}
+
+func composePickPosition(l model.WarehouseLocation) string {
+	parts := []string{}
+	for _, p := range []string{l.Zone, l.Aisle, l.Shelf, l.Bin} {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, "-")
 }
 
 func (s *MasterService) CreateLocation(in *dto.LocationDTO) (*model.WarehouseLocation, error) {
@@ -1157,14 +1252,20 @@ func (s *MasterService) CreateLocation(in *dto.LocationDTO) (*model.WarehouseLoc
 		return nil, mapNotFound(err)
 	}
 	item := &model.WarehouseLocation{
-		TenantID:    s.tenantID,
-		WarehouseID: in.WarehouseID,
-		Code:        strings.TrimSpace(in.Code),
-		Zone:        in.Zone,
-		Aisle:       in.Aisle,
-		Shelf:       in.Shelf,
-		Bin:         in.Bin,
-		Status:      statusOrDefault(in.Status),
+		TenantID:     s.tenantID,
+		WarehouseID:  in.WarehouseID,
+		Code:         strings.TrimSpace(in.Code),
+		Zone:         strings.TrimSpace(in.Zone),
+		Aisle:        strings.TrimSpace(in.Aisle),
+		Shelf:        strings.TrimSpace(in.Shelf),
+		Bin:          strings.TrimSpace(in.Bin),
+		PickOrder:    in.PickOrder,
+		PickPosition: strings.TrimSpace(in.PickPosition),
+		Remark:       strings.TrimSpace(in.Remark),
+		Status:       statusOrDefault(in.Status),
+	}
+	if item.PickPosition == "" {
+		item.PickPosition = composePickPosition(*item)
 	}
 	if err := s.repos.DB.Create(item).Error; err != nil {
 		if isUniqueViolation(err) {
@@ -1172,6 +1273,7 @@ func (s *MasterService) CreateLocation(in *dto.LocationDTO) (*model.WarehouseLoc
 		}
 		return nil, err
 	}
+	item.WarehouseName = wh.Name
 	return item, nil
 }
 
@@ -1181,11 +1283,17 @@ func (s *MasterService) UpdateLocation(id uint64, in *dto.LocationDTO) (*model.W
 		return nil, mapNotFound(err)
 	}
 	item.Code = strings.TrimSpace(in.Code)
-	item.Zone = in.Zone
-	item.Aisle = in.Aisle
-	item.Shelf = in.Shelf
-	item.Bin = in.Bin
+	item.Zone = strings.TrimSpace(in.Zone)
+	item.Aisle = strings.TrimSpace(in.Aisle)
+	item.Shelf = strings.TrimSpace(in.Shelf)
+	item.Bin = strings.TrimSpace(in.Bin)
+	item.PickOrder = in.PickOrder
+	item.PickPosition = strings.TrimSpace(in.PickPosition)
+	item.Remark = strings.TrimSpace(in.Remark)
 	item.Status = statusOrDefault(in.Status)
+	if item.PickPosition == "" {
+		item.PickPosition = composePickPosition(item)
+	}
 	if err := s.repos.DB.Save(&item).Error; err != nil {
 		if isUniqueViolation(err) {
 			return nil, ErrDuplicateCode
@@ -1208,7 +1316,82 @@ func (s *MasterService) DeleteLocation(id uint64) error {
 	if cnt > 0 {
 		return ErrBadRequest
 	}
-	res := s.db().Delete(&model.WarehouseLocation{}, id)
+	return s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		if e := tx.Where("tenant_id = ? AND location_id = ?", s.tenantID, id).Delete(&model.InvLocationSku{}).Error; e != nil {
+			return e
+		}
+		res := tx.Where("tenant_id = ?", s.tenantID).Delete(&model.WarehouseLocation{}, id)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
+}
+
+func (s *MasterService) ListLocationSkus(locationID uint64) ([]model.InvLocationSku, error) {
+	var loc model.WarehouseLocation
+	if err := s.db().First(&loc, locationID).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	var list []model.InvLocationSku
+	if err := s.db().Where("tenant_id = ? AND location_id = ?", s.tenantID, locationID).Order("id asc").Find(&list).Error; err != nil {
+		return nil, err
+	}
+	ids := make([]uint64, len(list))
+	for i := range list {
+		ids[i] = list[i].InvSkuID
+	}
+	skuMap := map[uint64]model.InvSku{}
+	if len(ids) > 0 {
+		var skus []model.InvSku
+		_ = s.db().Select("id, sku_code, pick_name").Where("tenant_id = ? AND id IN ?", s.tenantID, ids).Find(&skus)
+		for _, sk := range skus {
+			skuMap[sk.ID] = sk
+		}
+	}
+	for i := range list {
+		if sk, ok := skuMap[list[i].InvSkuID]; ok {
+			list[i].SkuCode = sk.SkuCode
+			list[i].PickName = sk.PickName
+		}
+	}
+	return list, nil
+}
+
+func (s *MasterService) BindLocationSku(locationID uint64, invSkuID uint64) (*model.InvLocationSku, error) {
+	if invSkuID == 0 {
+		return nil, ErrBadRequest
+	}
+	var loc model.WarehouseLocation
+	if err := s.db().First(&loc, locationID).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	var sku model.InvSku
+	if err := s.db().First(&sku, invSkuID).Error; err != nil {
+		return nil, mapNotFound(err)
+	}
+	item := &model.InvLocationSku{
+		TenantID:    s.tenantID,
+		WarehouseID: loc.WarehouseID,
+		LocationID:  locationID,
+		InvSkuID:    invSkuID,
+	}
+	if err := s.repos.DB.Create(item).Error; err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrDuplicateCode
+		}
+		return nil, err
+	}
+	item.SkuCode = sku.SkuCode
+	item.PickName = sku.PickName
+	return item, nil
+}
+
+func (s *MasterService) UnbindLocationSku(bindID uint64) error {
+	res := s.db().Where("tenant_id = ?", s.tenantID).Delete(&model.InvLocationSku{}, bindID)
 	if res.Error != nil {
 		return res.Error
 	}

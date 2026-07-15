@@ -64,6 +64,9 @@ export const api = {
   createLocation: (body: unknown) => client.post('/locations', body),
   updateLocation: (id: number, body: unknown) => client.put(`/locations/${id}`, body),
   deleteLocation: (id: number) => client.delete(`/locations/${id}`),
+  listLocationSkus: (id: number) => client.get(`/locations/${id}/skus`).then((r) => r.data.data as any[]),
+  bindLocationSku: (id: number, body: unknown) => client.post(`/locations/${id}/skus`, body).then((r) => r.data.data),
+  unbindLocationSku: (id: number) => client.delete(`/location-skus/${id}`),
 
   // stock
   stockBalances: (params?: Record<string, unknown>) => page<any>('/stock/balances', params),
