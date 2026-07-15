@@ -14,6 +14,7 @@ const pageSize = ref(20)
 const warehouses = ref<any[]>([])
 const statusTab = ref('all')
 const warehouseId = ref<number | undefined>()
+const reason = ref<string | undefined>()
 const keyword = ref('')
 const visible = ref(false)
 const form = ref<any>({})
@@ -33,9 +34,19 @@ const reasonMap: Record<string, string> = {
   adjust: '调整',
 }
 
+function fmtTime(v?: string) {
+  if (!v) return '-'
+  return String(v).replace('T', ' ').slice(0, 19)
+}
+
+function fmtNum(v?: number, digits = 2) {
+  if (v == null || Number.isNaN(Number(v))) return '-'
+  return Number(v).toFixed(digits)
+}
+
 async function loadWarehouses() {
   const res = await api.listWarehouses({ page: 1, pageSize: 200 })
-  warehouses.value = res.list
+  warehouses.value = (res.list || []).filter((w: any) => w.status !== 0)
 }
 
 async function load() {
@@ -46,6 +57,7 @@ async function load() {
       pageSize: pageSize.value,
       status: statusTab.value === 'all' ? undefined : statusTab.value,
       warehouseId: warehouseId.value,
+      reason: reason.value || undefined,
       keyword: keyword.value || undefined,
     })
     list.value = res.list
@@ -70,14 +82,6 @@ function search() {
 function onTabChange() {
   page.value = 1
   load()
-}
-
-function sumQty(row: any) {
-  return (row.items || []).reduce((s: number, i: any) => s + (Number(i.qty) || 0), 0)
-}
-
-function whName(id: number) {
-  return warehouses.value.find((w) => w.id === id)?.name || id
 }
 
 function openCreate() {
@@ -133,7 +137,7 @@ async function showDetail(row: any) {
 }
 
 async function post(row: any) {
-  await ElMessageBox.confirm('确认过账出库？', '提示')
+  await ElMessageBox.confirm('确认仓库审核过账出库？', '提示')
   await api.postOtherOut(row.id)
   ElMessage.success('已过账')
   await load()
@@ -145,11 +149,6 @@ async function cancel(row: any) {
   ElMessage.success('已作废')
   await load()
 }
-
-function fmtTime(v: string) {
-  if (!v) return '-'
-  return String(v).replace('T', ' ').slice(0, 19)
-}
 </script>
 
 <template>
@@ -158,7 +157,7 @@ function fmtTime(v: string) {
       <template #header>
         <div class="hdr">
           <span>其它出库单</span>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新建其它出库单</el-button>
+          <el-button type="primary" :icon="Plus" @click="openCreate">新增其它出库单</el-button>
         </div>
       </template>
 
@@ -170,52 +169,63 @@ function fmtTime(v: string) {
       </el-tabs>
 
       <div class="toolbar">
-        <el-select v-model="warehouseId" clearable placeholder="出库仓库" style="width: 180px">
+        <el-select v-model="warehouseId" clearable filterable placeholder="出库仓库" style="width: 180px" @change="search">
           <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
-        <el-input v-model="keyword" clearable placeholder="单号" style="width: 200px" @keyup.enter="search" />
+        <el-select v-model="reason" clearable placeholder="出库类别" style="width: 140px" @change="search">
+          <el-option v-for="(label, key) in reasonMap" :key="key" :label="label" :value="key" />
+        </el-select>
+        <el-input v-model="keyword" clearable placeholder="出库单号" style="width: 180px" @keyup.enter="search" />
         <el-button type="primary" @click="search">查询</el-button>
       </div>
 
       <el-table :data="list" border stripe>
-        <el-table-column prop="docNo" label="出库单号" width="160" />
-        <el-table-column label="出库仓库" width="140">
-          <template #default="{ row }">{{ whName(row.warehouseId) }}</template>
+        <el-table-column prop="docNo" label="出库单号" width="160" fixed show-overflow-tooltip />
+        <el-table-column label="出库仓库" width="140" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.warehouseName || '-' }}</template>
         </el-table-column>
         <el-table-column label="出库类别" width="100">
           <template #default="{ row }">{{ reasonMap[row.reason] || row.reason }}</template>
         </el-table-column>
         <el-table-column label="总数量" width="100" align="right">
-          <template #default="{ row }">{{ sumQty(row) }}</template>
+          <template #default="{ row }">{{ fmtNum(row.totalQty, 0) }}</template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
+        <el-table-column label="总金额" width="110" align="right">
+          <template #default="{ row }">{{ fmtNum(row.totalAmount) }}</template>
+        </el-table-column>
         <el-table-column label="制单时间" width="170">
           <template #default="{ row }">{{ fmtTime(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="审核时间" width="170">
+          <template #default="{ row }">{{ fmtTime(row.postedAt) }}</template>
+        </el-table-column>
+        <el-table-column prop="remark" label="出库备注" min-width="140" show-overflow-tooltip />
+        <el-table-column label="出库单状态" width="100">
           <template #default="{ row }">{{ statusMap[row.status] || row.status }}</template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="showDetail(row)">明细</el-button>
-            <el-button v-if="row.status === 'draft'" link type="primary" @click="post(row)">过账</el-button>
+            <el-button v-if="row.status === 'draft'" link type="primary" @click="post(row)">仓库审核</el-button>
             <el-button v-if="row.status === 'draft'" link type="danger" @click="cancel(row)">作废</el-button>
           </template>
         </el-table-column>
       </el-table>
       <el-pagination
         class="pager"
-        layout="total, prev, pager, next"
+        layout="total, sizes, prev, pager, next"
         :total="total"
         v-model:current-page="page"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
+        :page-sizes="[20, 50, 100]"
         @current-change="load"
+        @size-change="search"
       />
     </el-card>
 
-    <el-dialog v-model="visible" title="新建其它出库单" width="720px">
+    <el-dialog v-model="visible" title="新增其它出库单" width="720px">
       <el-form :model="form" label-width="90px">
-        <el-form-item label="仓库" required>
+        <el-form-item label="出库仓库" required>
           <el-select v-model="form.warehouseId" style="width: 100%" @change="form.locationId = null">
             <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
           </el-select>
@@ -225,13 +235,10 @@ function fmtTime(v: string) {
         </el-form-item>
         <el-form-item label="出库类别">
           <el-select v-model="form.reason" style="width: 100%">
-            <el-option label="报损" value="damage" />
-            <el-option label="样品" value="sample" />
-            <el-option label="领用" value="usage" />
-            <el-option label="调整" value="adjust" />
+            <el-option v-for="(label, key) in reasonMap" :key="key" :label="label" :value="key" />
           </el-select>
         </el-form-item>
-        <el-form-item label="备注"><el-input v-model="form.remark" /></el-form-item>
+        <el-form-item label="出库备注"><el-input v-model="form.remark" /></el-form-item>
         <el-form-item label="明细">
           <el-table :data="form.items" border size="small" style="width: 100%">
             <el-table-column label="库存SKU" min-width="220">
@@ -239,7 +246,7 @@ function fmtTime(v: string) {
                 <SkuSearchSelect v-model="row.invSkuId" />
               </template>
             </el-table-column>
-            <el-table-column label="数量" width="130">
+            <el-table-column label="出库数量" width="130">
               <template #default="{ row }">
                 <el-input-number v-model="row.qty" :min="0.0001" :controls="false" style="width: 110px" />
               </template>
@@ -259,19 +266,30 @@ function fmtTime(v: string) {
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailVisible" title="出库明细" size="520px">
+    <el-drawer v-model="detailVisible" title="出库单商品明细" size="720px">
       <template v-if="detail">
-        <el-descriptions :column="1" border class="mb">
+        <el-descriptions :column="2" border class="mb">
           <el-descriptions-item label="出库单号">{{ detail.docNo }}</el-descriptions-item>
-          <el-descriptions-item label="出库仓库">{{ whName(detail.warehouseId) }}</el-descriptions-item>
+          <el-descriptions-item label="出库仓库">{{ detail.warehouseName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="出库类别">{{ reasonMap[detail.reason] || detail.reason }}</el-descriptions-item>
           <el-descriptions-item label="状态">{{ statusMap[detail.status] || detail.status }}</el-descriptions-item>
-          <el-descriptions-item label="备注">{{ detail.remark || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="总数量">{{ fmtNum(detail.totalQty, 0) }}</el-descriptions-item>
+          <el-descriptions-item label="总金额">{{ fmtNum(detail.totalAmount) }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
         </el-descriptions>
-        <el-table :data="detail.items || []" border stripe size="small">
-          <el-table-column prop="skuCode" label="库存SKU" min-width="120" />
+        <el-table :data="detail.items || []" border stripe size="small" max-height="480">
+          <el-table-column prop="skuCode" label="库存SKU" width="120" show-overflow-tooltip />
           <el-table-column prop="pickName" label="配货名称" min-width="120" show-overflow-tooltip />
-          <el-table-column prop="qty" label="数量" width="90" align="right" />
+          <el-table-column prop="qty" label="出库数量" width="90" align="right" />
+          <el-table-column label="出库单价" width="90" align="right">
+            <template #default="{ row }">{{ fmtNum(row.unitCost) }}</template>
+          </el-table-column>
+          <el-table-column label="出库金额" width="100" align="right">
+            <template #default="{ row }">{{ fmtNum(row.amount) }}</template>
+          </el-table-column>
+          <el-table-column prop="brand" label="品牌" width="80" show-overflow-tooltip />
+          <el-table-column prop="style1" label="款式1" width="80" show-overflow-tooltip />
+          <el-table-column prop="remark" label="商品备注" min-width="100" show-overflow-tooltip />
         </el-table>
       </template>
     </el-drawer>

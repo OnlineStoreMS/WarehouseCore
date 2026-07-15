@@ -66,13 +66,14 @@ func (s *DocumentService) expandOutboundLines(tx *gorm.DB, warehouseID, location
 
 // ── Other Inbound ──
 
-func (s *DocumentService) ListOtherIn(keyword, status string, warehouseID uint64, page, pageSize int) ([]model.OtherInboundOrder, int64, error) {
+func (s *DocumentService) ListOtherIn(keyword, status, reason string, warehouseID uint64, page, pageSize int) ([]model.OtherInboundOrder, int64, error) {
 	q := s.db().Model(&model.OtherInboundOrder{})
 	if keyword != "" {
 		q = q.Where("doc_no ILIKE ?", "%"+keyword+"%")
 	}
-	if status != "" {
-		q = q.Where("status = ?", status)
+	q = applyDocStatusFilter(q, status)
+	if reason != "" {
+		q = q.Where("reason = ?", reason)
 	}
 	if warehouseID > 0 {
 		q = q.Where("warehouse_id = ?", warehouseID)
@@ -86,8 +87,17 @@ func (s *DocumentService) ListOtherIn(keyword, status string, warehouseID uint64
 	if err != nil {
 		return nil, 0, err
 	}
+	whNames := s.warehouseNameMap(collectWarehouseIDsFromOtherIn(list))
 	for i := range list {
 		s.enrichSkuOnItems(list[i].Items)
+		list[i].WarehouseName = whNames[list[i].WarehouseID]
+		var qty, amt float64
+		for _, it := range list[i].Items {
+			qty += it.Qty
+			amt += it.Qty * it.Cost
+		}
+		list[i].TotalQty = qty
+		list[i].TotalAmount = amt
 	}
 	return list, total, nil
 }
@@ -98,6 +108,13 @@ func (s *DocumentService) GetOtherIn(id uint64) (*model.OtherInboundOrder, error
 		return nil, mapNotFound(err)
 	}
 	s.enrichSkuOnItems(item.Items)
+	item.WarehouseName = s.warehouseNameMap([]uint64{item.WarehouseID})[item.WarehouseID]
+	var qty, amt float64
+	for _, it := range item.Items {
+		qty += it.Qty
+		amt += it.Amount
+	}
+	item.TotalQty, item.TotalAmount = qty, amt
 	return &item, nil
 }
 
@@ -199,13 +216,14 @@ func (s *DocumentService) CancelOtherIn(id uint64) error {
 
 // ── Other Outbound ──
 
-func (s *DocumentService) ListOtherOut(keyword, status string, warehouseID uint64, page, pageSize int) ([]model.OtherOutboundOrder, int64, error) {
+func (s *DocumentService) ListOtherOut(keyword, status, reason string, warehouseID uint64, page, pageSize int) ([]model.OtherOutboundOrder, int64, error) {
 	q := s.db().Model(&model.OtherOutboundOrder{})
 	if keyword != "" {
 		q = q.Where("doc_no ILIKE ?", "%"+keyword+"%")
 	}
-	if status != "" {
-		q = q.Where("status = ?", status)
+	q = applyDocStatusFilter(q, status)
+	if reason != "" {
+		q = q.Where("reason = ?", reason)
 	}
 	if warehouseID > 0 {
 		q = q.Where("warehouse_id = ?", warehouseID)
@@ -219,8 +237,17 @@ func (s *DocumentService) ListOtherOut(keyword, status string, warehouseID uint6
 	if err != nil {
 		return nil, 0, err
 	}
+	whNames := s.warehouseNameMap(collectWarehouseIDsFromOtherOut(list))
 	for i := range list {
 		s.enrichSkuOnOutItems(list[i].Items)
+		list[i].WarehouseName = whNames[list[i].WarehouseID]
+		var qty, amt float64
+		for _, it := range list[i].Items {
+			qty += it.Qty
+			amt += it.Amount
+		}
+		list[i].TotalQty = qty
+		list[i].TotalAmount = amt
 	}
 	return list, total, nil
 }
@@ -231,6 +258,13 @@ func (s *DocumentService) GetOtherOut(id uint64) (*model.OtherOutboundOrder, err
 		return nil, mapNotFound(err)
 	}
 	s.enrichSkuOnOutItems(item.Items)
+	item.WarehouseName = s.warehouseNameMap([]uint64{item.WarehouseID})[item.WarehouseID]
+	var qty, amt float64
+	for _, it := range item.Items {
+		qty += it.Qty
+		amt += it.Amount
+	}
+	item.TotalQty, item.TotalAmount = qty, amt
 	return &item, nil
 }
 
@@ -327,9 +361,7 @@ func (s *DocumentService) ListStocktakes(keyword, status string, warehouseID uin
 	if keyword != "" {
 		q = q.Where("doc_no ILIKE ?", "%"+keyword+"%")
 	}
-	if status != "" {
-		q = q.Where("status = ?", status)
-	}
+	q = applyStocktakeStatusFilter(q, status)
 	if warehouseID > 0 {
 		q = q.Where("warehouse_id = ?", warehouseID)
 	}
@@ -338,8 +370,29 @@ func (s *DocumentService) ListStocktakes(keyword, status string, warehouseID uin
 		return nil, 0, err
 	}
 	var list []model.StocktakeOrder
-	err := q.Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	err := q.Preload("Items").Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	ids := make([]uint64, len(list))
+	for i := range list {
+		ids[i] = list[i].WarehouseID
+	}
+	whNames := s.warehouseNameMap(ids)
+	for i := range list {
+		list[i].WarehouseName = whNames[list[i].WarehouseID]
+		s.enrichStocktakeItems(list[i].Items)
+		var book, count, diff float64
+		for _, it := range list[i].Items {
+			book += it.BookQty
+			count += it.CountQty
+			diff += it.DiffQty
+		}
+		list[i].TotalBookQty = book
+		list[i].TotalCountQty = count
+		list[i].TotalDiffQty = diff
+	}
+	return list, total, nil
 }
 
 func (s *DocumentService) GetStocktake(id uint64) (*model.StocktakeOrder, error) {
@@ -497,13 +550,17 @@ func (s *DocumentService) CancelStocktake(id uint64) error {
 	return s.db().Model(&order).Update("status", model.DocStatusCancelled).Error
 }
 
-func (s *DocumentService) ListStocktakeDetails(keyword string, warehouseID, stocktakeID uint64, page, pageSize int) ([]model.StocktakeItem, int64, error) {
+func (s *DocumentService) ListStocktakeDetails(keyword, status string, warehouseID, stocktakeID uint64, from, to *time.Time, page, pageSize int) ([]model.StocktakeItem, int64, error) {
 	q := s.repos.DB.Table("stocktake_items AS i").
 		Select(`i.id, i.tenant_id, i.order_id, i.location_id, i.inv_sku_id, i.book_qty, i.count_qty, i.diff_qty, i.remark,
-			o.doc_no, o.warehouse_id, w.name AS warehouse_name, s.sku_code, s.pick_name, l.code AS location_code`).
+			o.doc_no, o.warehouse_id, o.status, o.remark AS order_remark, o.created_at, o.posted_at,
+			w.name AS warehouse_name, s.sku_code, s.pick_name, s.style1, s.style2, s.style3,
+			s.last_purchase_price AS unit_cost, COALESCE(p.spec_class,'') AS spec_class,
+			COALESCE(p.model,'') AS model, COALESCE(p.unit,'') AS unit, l.code AS location_code`).
 		Joins("JOIN stocktake_orders o ON o.id = i.order_id").
 		Joins("JOIN warehouses w ON w.id = o.warehouse_id").
 		Joins("JOIN inv_skus s ON s.id = i.inv_sku_id").
+		Joins("JOIN inv_products p ON p.id = s.parent_id").
 		Joins("LEFT JOIN warehouse_locations l ON l.id = i.location_id").
 		Where("i.tenant_id = ?", s.tenantID)
 	if keyword != "" {
@@ -516,6 +573,13 @@ func (s *DocumentService) ListStocktakeDetails(keyword string, warehouseID, stoc
 	if stocktakeID > 0 {
 		q = q.Where("i.order_id = ?", stocktakeID)
 	}
+	if from != nil {
+		q = q.Where("o.created_at >= ?", *from)
+	}
+	if to != nil {
+		q = q.Where("o.created_at <= ?", *to)
+	}
+	q = applyStocktakeStatusFilterCol(q, "o.status", status)
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -527,8 +591,15 @@ func (s *DocumentService) ListStocktakeDetails(keyword string, warehouseID, stoc
 		pageSize = 20
 	}
 	var list []model.StocktakeItem
-	err := q.Order("i.id desc").Offset((page - 1) * pageSize).Limit(pageSize).Scan(&list).Error
-	return list, total, err
+	if err := q.Order("i.id desc").Offset((page - 1) * pageSize).Limit(pageSize).Scan(&list).Error; err != nil {
+		return nil, 0, err
+	}
+	for i := range list {
+		list[i].BookAmount = list[i].BookQty * list[i].UnitCost
+		list[i].CountAmount = list[i].CountQty * list[i].UnitCost
+		list[i].DiffAmount = list[i].DiffQty * list[i].UnitCost
+	}
+	return list, total, nil
 }
 
 // ── Transfer ──
@@ -538,9 +609,7 @@ func (s *DocumentService) ListTransfers(keyword, status string, fromWarehouseID,
 	if keyword != "" {
 		q = q.Where("doc_no ILIKE ?", "%"+keyword+"%")
 	}
-	if status != "" {
-		q = q.Where("status = ?", status)
-	}
+	q = applyDocStatusFilter(q, status)
 	if fromWarehouseID > 0 {
 		q = q.Where("from_warehouse_id = ?", fromWarehouseID)
 	}
@@ -556,8 +625,22 @@ func (s *DocumentService) ListTransfers(keyword, status string, fromWarehouseID,
 	if err != nil {
 		return nil, 0, err
 	}
+	ids := make([]uint64, 0, len(list)*2)
+	for i := range list {
+		ids = append(ids, list[i].FromWarehouseID, list[i].ToWarehouseID)
+	}
+	whNames := s.warehouseNameMap(ids)
 	for i := range list {
 		s.enrichSkuOnXferItems(list[i].Items)
+		list[i].FromWarehouseName = whNames[list[i].FromWarehouseID]
+		list[i].ToWarehouseName = whNames[list[i].ToWarehouseID]
+		var qty, amt float64
+		for _, it := range list[i].Items {
+			qty += it.Qty
+			amt += it.Amount
+		}
+		list[i].TotalQty = qty
+		list[i].TotalAmount = amt
 	}
 	return list, total, nil
 }
@@ -568,6 +651,15 @@ func (s *DocumentService) GetTransfer(id uint64) (*model.TransferOrder, error) {
 		return nil, mapNotFound(err)
 	}
 	s.enrichSkuOnXferItems(item.Items)
+	wh := s.warehouseNameMap([]uint64{item.FromWarehouseID, item.ToWarehouseID})
+	item.FromWarehouseName = wh[item.FromWarehouseID]
+	item.ToWarehouseName = wh[item.ToWarehouseID]
+	var qty, amt float64
+	for _, it := range item.Items {
+		qty += it.Qty
+		amt += it.Amount
+	}
+	item.TotalQty, item.TotalAmount = qty, amt
 	return &item, nil
 }
 
@@ -701,7 +793,31 @@ func (s *DocumentService) CancelTransfer(id uint64) error {
 }
 
 func (s *DocumentService) skuCodeMap(ids []uint64) map[uint64][2]string {
+	info := s.skuInfoMap(ids)
 	out := map[uint64][2]string{}
+	for id, v := range info {
+		out[id] = [2]string{v.SkuCode, v.PickName}
+	}
+	return out
+}
+
+type skuEnrich struct {
+	SkuCode   string
+	PickName  string
+	UnitCost  float64
+	WeightG   float64
+	Style1    string
+	Style2    string
+	Style3    string
+	Brand     string
+	SpecClass string
+	Model     string
+	Material  string
+	Unit      string
+}
+
+func (s *DocumentService) skuInfoMap(ids []uint64) map[uint64]skuEnrich {
+	out := map[uint64]skuEnrich{}
 	if len(ids) == 0 {
 		return out
 	}
@@ -717,10 +833,35 @@ func (s *DocumentService) skuCodeMap(ids []uint64) map[uint64][2]string {
 		seen[id] = struct{}{}
 		uniq = append(uniq, id)
 	}
-	var rows []model.InvSku
-	_ = s.db().Select("id, sku_code, pick_name").Where("tenant_id = ? AND id IN ?", s.tenantID, uniq).Find(&rows)
+	type row struct {
+		ID                uint64
+		SkuCode           string
+		PickName          string
+		LastPurchasePrice float64
+		WeightG           float64
+		Style1            string
+		Style2            string
+		Style3            string
+		Brand             string
+		SpecClass         string
+		Model             string
+		Material          string
+		Unit              string
+	}
+	var rows []row
+	_ = s.repos.DB.Table("inv_skus AS s").
+		Select(`s.id, s.sku_code, s.pick_name, s.last_purchase_price, s.weight_g, s.style1, s.style2, s.style3,
+			COALESCE(p.brand,'') AS brand, COALESCE(p.spec_class,'') AS spec_class,
+			COALESCE(p.model,'') AS model, COALESCE(p.material,'') AS material, COALESCE(p.unit,'') AS unit`).
+		Joins("JOIN inv_products p ON p.id = s.parent_id").
+		Where("s.tenant_id = ? AND s.id IN ?", s.tenantID, uniq).
+		Scan(&rows)
 	for _, r := range rows {
-		out[r.ID] = [2]string{r.SkuCode, r.PickName}
+		out[r.ID] = skuEnrich{
+			SkuCode: r.SkuCode, PickName: r.PickName, UnitCost: r.LastPurchasePrice, WeightG: r.WeightG,
+			Style1: r.Style1, Style2: r.Style2, Style3: r.Style3,
+			Brand: r.Brand, SpecClass: r.SpecClass, Model: r.Model, Material: r.Material, Unit: r.Unit,
+		}
 	}
 	return out
 }
@@ -750,16 +891,48 @@ func (s *DocumentService) locationCodeMap(ids []uint64) map[uint64]string {
 	return out
 }
 
+func (s *DocumentService) warehouseNameMap(ids []uint64) map[uint64]string {
+	out := map[uint64]string{}
+	if len(ids) == 0 {
+		return out
+	}
+	uniq := make([]uint64, 0, len(ids))
+	seen := map[uint64]struct{}{}
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		uniq = append(uniq, id)
+	}
+	var rows []model.Warehouse
+	_ = s.db().Select("id, name").Where("tenant_id = ? AND id IN ?", s.tenantID, uniq).Find(&rows)
+	for _, r := range rows {
+		out[r.ID] = r.Name
+	}
+	return out
+}
+
 func (s *DocumentService) enrichSkuOnItems(items []model.OtherInboundItem) {
 	ids := make([]uint64, len(items))
 	for i := range items {
 		ids[i] = items[i].InvSkuID
 	}
-	m := s.skuCodeMap(ids)
+	m := s.skuInfoMap(ids)
 	for i := range items {
 		if v, ok := m[items[i].InvSkuID]; ok {
-			items[i].SkuCode, items[i].PickName = v[0], v[1]
+			items[i].SkuCode, items[i].PickName = v.SkuCode, v.PickName
+			items[i].Style1, items[i].Style2, items[i].Style3 = v.Style1, v.Style2, v.Style3
+			items[i].Brand, items[i].SpecClass, items[i].Model = v.Brand, v.SpecClass, v.Model
+			items[i].Material, items[i].Unit = v.Material, v.Unit
+			if items[i].Cost <= 0 {
+				items[i].Cost = v.UnitCost
+			}
 		}
+		items[i].Amount = items[i].Qty * items[i].Cost
 	}
 }
 
@@ -768,11 +941,16 @@ func (s *DocumentService) enrichSkuOnOutItems(items []model.OtherOutboundItem) {
 	for i := range items {
 		ids[i] = items[i].InvSkuID
 	}
-	m := s.skuCodeMap(ids)
+	m := s.skuInfoMap(ids)
 	for i := range items {
 		if v, ok := m[items[i].InvSkuID]; ok {
-			items[i].SkuCode, items[i].PickName = v[0], v[1]
+			items[i].SkuCode, items[i].PickName = v.SkuCode, v.PickName
+			items[i].UnitCost = v.UnitCost
+			items[i].Style1, items[i].Style2, items[i].Style3 = v.Style1, v.Style2, v.Style3
+			items[i].Brand, items[i].SpecClass, items[i].Model = v.Brand, v.SpecClass, v.Model
+			items[i].Material, items[i].Unit = v.Material, v.Unit
 		}
+		items[i].Amount = items[i].Qty * items[i].UnitCost
 	}
 }
 
@@ -781,11 +959,16 @@ func (s *DocumentService) enrichSkuOnXferItems(items []model.TransferItem) {
 	for i := range items {
 		ids[i] = items[i].InvSkuID
 	}
-	m := s.skuCodeMap(ids)
+	m := s.skuInfoMap(ids)
 	for i := range items {
 		if v, ok := m[items[i].InvSkuID]; ok {
-			items[i].SkuCode, items[i].PickName = v[0], v[1]
+			items[i].SkuCode, items[i].PickName = v.SkuCode, v.PickName
+			items[i].WeightG, items[i].UnitCost = v.WeightG, v.UnitCost
+			items[i].Style1, items[i].Style2, items[i].Style3 = v.Style1, v.Style2, v.Style3
+			items[i].Brand, items[i].SpecClass, items[i].Model = v.Brand, v.SpecClass, v.Model
+			items[i].Material, items[i].Unit = v.Material, v.Unit
 		}
+		items[i].Amount = items[i].Qty * items[i].UnitCost
 	}
 }
 
@@ -796,12 +979,56 @@ func (s *DocumentService) enrichStocktakeItems(items []model.StocktakeItem) {
 		skuIDs[i] = items[i].InvSkuID
 		locIDs[i] = items[i].LocationID
 	}
-	sm := s.skuCodeMap(skuIDs)
+	sm := s.skuInfoMap(skuIDs)
 	lm := s.locationCodeMap(locIDs)
 	for i := range items {
 		if v, ok := sm[items[i].InvSkuID]; ok {
-			items[i].SkuCode, items[i].PickName = v[0], v[1]
+			items[i].SkuCode, items[i].PickName = v.SkuCode, v.PickName
+			items[i].UnitCost = v.UnitCost
+			items[i].Style1, items[i].Style2, items[i].Style3 = v.Style1, v.Style2, v.Style3
+			items[i].SpecClass, items[i].Model, items[i].Unit = v.SpecClass, v.Model, v.Unit
+			items[i].BookAmount = items[i].BookQty * v.UnitCost
+			items[i].CountAmount = items[i].CountQty * v.UnitCost
+			items[i].DiffAmount = items[i].DiffQty * v.UnitCost
 		}
 		items[i].LocationCode = lm[items[i].LocationID]
 	}
+}
+
+func applyDocStatusFilter(q *gorm.DB, status string) *gorm.DB {
+	if status == "" || status == "all" {
+		return q
+	}
+	return q.Where("status = ?", status)
+}
+
+func applyStocktakeStatusFilter(q *gorm.DB, status string) *gorm.DB {
+	return applyStocktakeStatusFilterCol(q, "status", status)
+}
+
+func applyStocktakeStatusFilterCol(q *gorm.DB, col, status string) *gorm.DB {
+	if status == "" || status == "all" {
+		return q
+	}
+	// 普源「未审核/盘点中」
+	if status == "open" || status == "pending" {
+		return q.Where(col+" IN ?", []string{model.DocStatusDraft, model.DocStatusCounting})
+	}
+	return q.Where(col+" = ?", status)
+}
+
+func collectWarehouseIDsFromOtherIn(list []model.OtherInboundOrder) []uint64 {
+	ids := make([]uint64, len(list))
+	for i := range list {
+		ids[i] = list[i].WarehouseID
+	}
+	return ids
+}
+
+func collectWarehouseIDsFromOtherOut(list []model.OtherOutboundOrder) []uint64 {
+	ids := make([]uint64, len(list))
+	for i := range list {
+		ids[i] = list[i].WarehouseID
+	}
+	return ids
 }

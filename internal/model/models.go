@@ -355,19 +355,22 @@ const (
 )
 
 type OtherInboundOrder struct {
-	ID          uint64              `gorm:"primaryKey" json:"id"`
-	TenantID    uint64              `gorm:"index;not null" json:"tenantId"`
-	DocNo       string              `gorm:"size:64;not null" json:"docNo"`
-	WarehouseID uint64              `gorm:"index;not null" json:"warehouseId"`
-	LocationID  uint64              `gorm:"default:0" json:"locationId"`
-	Reason      string              `gorm:"size:64" json:"reason"` // opening/gift/return/adjust/...
-	Status      string              `gorm:"size:32;default:draft" json:"status"`
-	Remark      string              `gorm:"size:512" json:"remark"`
-	PostedAt    *time.Time          `json:"postedAt"`
-	CreatedBy   uint64              `gorm:"default:0" json:"createdBy"`
-	CreatedAt   time.Time           `json:"createdAt"`
-	UpdatedAt   time.Time           `json:"updatedAt"`
-	Items       []OtherInboundItem  `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	ID            uint64             `gorm:"primaryKey" json:"id"`
+	TenantID      uint64             `gorm:"index;not null" json:"tenantId"`
+	DocNo         string             `gorm:"size:64;not null" json:"docNo"`
+	WarehouseID   uint64             `gorm:"index;not null" json:"warehouseId"`
+	LocationID    uint64             `gorm:"default:0" json:"locationId"`
+	Reason        string             `gorm:"size:64" json:"reason"` // opening/gift/return/adjust/...
+	Status        string             `gorm:"size:32;default:draft" json:"status"`
+	Remark        string             `gorm:"size:512" json:"remark"`
+	PostedAt      *time.Time         `json:"postedAt"`
+	CreatedBy     uint64             `gorm:"default:0" json:"createdBy"`
+	CreatedAt     time.Time          `json:"createdAt"`
+	UpdatedAt     time.Time          `json:"updatedAt"`
+	Items         []OtherInboundItem `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	WarehouseName string             `gorm:"-" json:"warehouseName,omitempty"`
+	TotalQty      float64            `gorm:"-" json:"totalQty"`
+	TotalAmount   float64            `gorm:"-" json:"totalAmount"`
 }
 
 func (OtherInboundOrder) TableName() string { return "other_inbound_orders" }
@@ -382,37 +385,59 @@ type OtherInboundItem struct {
 	Remark   string  `gorm:"size:256" json:"remark"`
 	SkuCode  string  `gorm:"-" json:"skuCode,omitempty"`
 	PickName string  `gorm:"-" json:"pickName,omitempty"`
+	Amount   float64 `gorm:"-" json:"amount,omitempty"`
+	Style1   string  `gorm:"-" json:"style1,omitempty"`
+	Style2   string  `gorm:"-" json:"style2,omitempty"`
+	Style3   string  `gorm:"-" json:"style3,omitempty"`
+	Brand    string  `gorm:"-" json:"brand,omitempty"`
+	SpecClass string `gorm:"-" json:"specClass,omitempty"`
+	Model    string  `gorm:"-" json:"model,omitempty"`
+	Material string  `gorm:"-" json:"material,omitempty"`
+	Unit     string  `gorm:"-" json:"unit,omitempty"`
 }
 
 func (OtherInboundItem) TableName() string { return "other_inbound_items" }
 
 type OtherOutboundOrder struct {
-	ID          uint64               `gorm:"primaryKey" json:"id"`
-	TenantID    uint64               `gorm:"index;not null" json:"tenantId"`
-	DocNo       string               `gorm:"size:64;not null" json:"docNo"`
-	WarehouseID uint64               `gorm:"index;not null" json:"warehouseId"`
-	LocationID  uint64               `gorm:"default:0" json:"locationId"`
-	Reason      string               `gorm:"size:64" json:"reason"` // damage/sample/usage/adjust/...
-	Status      string               `gorm:"size:32;default:draft" json:"status"`
-	Remark      string               `gorm:"size:512" json:"remark"`
-	PostedAt    *time.Time           `json:"postedAt"`
-	CreatedBy   uint64               `gorm:"default:0" json:"createdBy"`
-	CreatedAt   time.Time            `json:"createdAt"`
-	UpdatedAt   time.Time            `json:"updatedAt"`
-	Items       []OtherOutboundItem  `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	ID            uint64              `gorm:"primaryKey" json:"id"`
+	TenantID      uint64              `gorm:"index;not null" json:"tenantId"`
+	DocNo         string              `gorm:"size:64;not null" json:"docNo"`
+	WarehouseID   uint64              `gorm:"index;not null" json:"warehouseId"`
+	LocationID    uint64              `gorm:"default:0" json:"locationId"`
+	Reason        string              `gorm:"size:64" json:"reason"` // damage/sample/usage/adjust/...
+	Status        string              `gorm:"size:32;default:draft" json:"status"`
+	Remark        string              `gorm:"size:512" json:"remark"`
+	PostedAt      *time.Time          `json:"postedAt"`
+	CreatedBy     uint64              `gorm:"default:0" json:"createdBy"`
+	CreatedAt     time.Time           `json:"createdAt"`
+	UpdatedAt     time.Time           `json:"updatedAt"`
+	Items         []OtherOutboundItem `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	WarehouseName string              `gorm:"-" json:"warehouseName,omitempty"`
+	TotalQty      float64             `gorm:"-" json:"totalQty"`
+	TotalAmount   float64             `gorm:"-" json:"totalAmount"`
 }
 
 func (OtherOutboundOrder) TableName() string { return "other_outbound_orders" }
 
 type OtherOutboundItem struct {
-	ID       uint64  `gorm:"primaryKey" json:"id"`
-	TenantID uint64  `gorm:"index;not null" json:"tenantId"`
-	OrderID  uint64  `gorm:"index;not null" json:"orderId"`
-	InvSkuID uint64  `gorm:"index;not null" json:"invSkuId"`
-	Qty      float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
-	Remark   string  `gorm:"size:256" json:"remark"`
-	SkuCode  string  `gorm:"-" json:"skuCode,omitempty"`
-	PickName string  `gorm:"-" json:"pickName,omitempty"`
+	ID        uint64  `gorm:"primaryKey" json:"id"`
+	TenantID  uint64  `gorm:"index;not null" json:"tenantId"`
+	OrderID   uint64  `gorm:"index;not null" json:"orderId"`
+	InvSkuID  uint64  `gorm:"index;not null" json:"invSkuId"`
+	Qty       float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
+	Remark    string  `gorm:"size:256" json:"remark"`
+	SkuCode   string  `gorm:"-" json:"skuCode,omitempty"`
+	PickName  string  `gorm:"-" json:"pickName,omitempty"`
+	UnitCost  float64 `gorm:"-" json:"unitCost,omitempty"`
+	Amount    float64 `gorm:"-" json:"amount,omitempty"`
+	Style1    string  `gorm:"-" json:"style1,omitempty"`
+	Style2    string  `gorm:"-" json:"style2,omitempty"`
+	Style3    string  `gorm:"-" json:"style3,omitempty"`
+	Brand     string  `gorm:"-" json:"brand,omitempty"`
+	SpecClass string  `gorm:"-" json:"specClass,omitempty"`
+	Model     string  `gorm:"-" json:"model,omitempty"`
+	Material  string  `gorm:"-" json:"material,omitempty"`
+	Unit      string  `gorm:"-" json:"unit,omitempty"`
 }
 
 func (OtherOutboundItem) TableName() string { return "other_outbound_items" }
@@ -420,38 +445,56 @@ func (OtherOutboundItem) TableName() string { return "other_outbound_items" }
 // ── 盘点 ──
 
 type StocktakeOrder struct {
-	ID          uint64           `gorm:"primaryKey" json:"id"`
-	TenantID    uint64           `gorm:"index;not null" json:"tenantId"`
-	DocNo       string           `gorm:"size:64;not null" json:"docNo"`
-	WarehouseID uint64           `gorm:"index;not null" json:"warehouseId"`
-	LocationID  uint64           `gorm:"default:0" json:"locationId"` // 0=全仓
-	Status      string           `gorm:"size:32;default:draft" json:"status"`
-	Remark      string           `gorm:"size:512" json:"remark"`
-	PostedAt    *time.Time       `json:"postedAt"`
-	CreatedBy   uint64           `gorm:"default:0" json:"createdBy"`
-	CreatedAt   time.Time        `json:"createdAt"`
-	UpdatedAt   time.Time        `json:"updatedAt"`
-	Items       []StocktakeItem  `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	ID            uint64          `gorm:"primaryKey" json:"id"`
+	TenantID      uint64          `gorm:"index;not null" json:"tenantId"`
+	DocNo         string          `gorm:"size:64;not null" json:"docNo"`
+	WarehouseID   uint64          `gorm:"index;not null" json:"warehouseId"`
+	LocationID    uint64          `gorm:"default:0" json:"locationId"` // 0=全仓
+	Status        string          `gorm:"size:32;default:draft" json:"status"`
+	Remark        string          `gorm:"size:512" json:"remark"`
+	PostedAt      *time.Time      `json:"postedAt"`
+	CreatedBy     uint64          `gorm:"default:0" json:"createdBy"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+	Items         []StocktakeItem `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	WarehouseName string          `gorm:"-" json:"warehouseName,omitempty"`
+	TotalBookQty  float64         `gorm:"-" json:"totalBookQty"`
+	TotalCountQty float64         `gorm:"-" json:"totalCountQty"`
+	TotalDiffQty  float64         `gorm:"-" json:"totalDiffQty"`
 }
 
 func (StocktakeOrder) TableName() string { return "stocktake_orders" }
 
 type StocktakeItem struct {
-	ID           uint64  `gorm:"primaryKey" json:"id"`
-	TenantID     uint64  `gorm:"index;not null" json:"tenantId"`
-	OrderID      uint64  `gorm:"index;not null" json:"orderId"`
-	LocationID   uint64  `gorm:"index;not null" json:"locationId"`
-	InvSkuID     uint64  `gorm:"index;not null" json:"invSkuId"`
-	BookQty      float64 `gorm:"type:numeric(14,4);default:0" json:"bookQty"`
-	CountQty     float64 `gorm:"type:numeric(14,4);default:0" json:"countQty"`
-	DiffQty      float64 `gorm:"type:numeric(14,4);default:0" json:"diffQty"`
-	Remark       string  `gorm:"size:256" json:"remark"`
-	SkuCode      string  `gorm:"-" json:"skuCode,omitempty"`
-	PickName     string  `gorm:"-" json:"pickName,omitempty"`
-	LocationCode string  `gorm:"-" json:"locationCode,omitempty"`
-	DocNo        string  `gorm:"-" json:"docNo,omitempty"`
-	WarehouseID  uint64  `gorm:"-" json:"warehouseId,omitempty"`
-	WarehouseName string `gorm:"-" json:"warehouseName,omitempty"`
+	ID            uint64     `gorm:"primaryKey" json:"id"`
+	TenantID      uint64     `gorm:"index;not null" json:"tenantId"`
+	OrderID       uint64     `gorm:"index;not null" json:"orderId"`
+	LocationID    uint64     `gorm:"index;not null" json:"locationId"`
+	InvSkuID      uint64     `gorm:"index;not null" json:"invSkuId"`
+	BookQty       float64    `gorm:"type:numeric(14,4);default:0" json:"bookQty"`
+	CountQty      float64    `gorm:"type:numeric(14,4);default:0" json:"countQty"`
+	DiffQty       float64    `gorm:"type:numeric(14,4);default:0" json:"diffQty"`
+	Remark        string     `gorm:"size:256" json:"remark"`
+	SkuCode       string     `gorm:"-" json:"skuCode,omitempty"`
+	PickName      string     `gorm:"-" json:"pickName,omitempty"`
+	LocationCode  string     `gorm:"-" json:"locationCode,omitempty"`
+	DocNo         string     `gorm:"-" json:"docNo,omitempty"`
+	WarehouseID   uint64     `gorm:"-" json:"warehouseId,omitempty"`
+	WarehouseName string     `gorm:"-" json:"warehouseName,omitempty"`
+	Status        string     `gorm:"-" json:"status,omitempty"`
+	OrderRemark   string     `gorm:"-" json:"orderRemark,omitempty"`
+	CreatedAt     *time.Time `gorm:"-" json:"createdAt,omitempty"`
+	PostedAt      *time.Time `gorm:"-" json:"postedAt,omitempty"`
+	UnitCost      float64    `gorm:"-" json:"unitCost,omitempty"`
+	BookAmount    float64    `gorm:"-" json:"bookAmount,omitempty"`
+	CountAmount   float64    `gorm:"-" json:"countAmount,omitempty"`
+	DiffAmount    float64    `gorm:"-" json:"diffAmount,omitempty"`
+	Style1        string     `gorm:"-" json:"style1,omitempty"`
+	Style2        string     `gorm:"-" json:"style2,omitempty"`
+	Style3        string     `gorm:"-" json:"style3,omitempty"`
+	SpecClass     string     `gorm:"-" json:"specClass,omitempty"`
+	Model         string     `gorm:"-" json:"model,omitempty"`
+	Unit          string     `gorm:"-" json:"unit,omitempty"`
 }
 
 func (StocktakeItem) TableName() string { return "stocktake_items" }
@@ -459,34 +502,49 @@ func (StocktakeItem) TableName() string { return "stocktake_items" }
 // ── 调拨 ──
 
 type TransferOrder struct {
-	ID              uint64          `gorm:"primaryKey" json:"id"`
-	TenantID        uint64          `gorm:"index;not null" json:"tenantId"`
-	DocNo           string          `gorm:"size:64;not null" json:"docNo"`
-	FromWarehouseID uint64          `gorm:"index;not null" json:"fromWarehouseId"`
-	FromLocationID  uint64          `gorm:"default:0" json:"fromLocationId"`
-	ToWarehouseID   uint64          `gorm:"index;not null" json:"toWarehouseId"`
-	ToLocationID    uint64          `gorm:"default:0" json:"toLocationId"`
-	Status          string          `gorm:"size:32;default:draft" json:"status"`
-	Remark          string          `gorm:"size:512" json:"remark"`
-	ShippedAt       *time.Time      `json:"shippedAt"`
-	ReceivedAt      *time.Time      `json:"receivedAt"`
-	CreatedBy       uint64          `gorm:"default:0" json:"createdBy"`
-	CreatedAt       time.Time       `json:"createdAt"`
-	UpdatedAt       time.Time       `json:"updatedAt"`
-	Items           []TransferItem  `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	ID                uint64         `gorm:"primaryKey" json:"id"`
+	TenantID          uint64         `gorm:"index;not null" json:"tenantId"`
+	DocNo             string         `gorm:"size:64;not null" json:"docNo"`
+	FromWarehouseID   uint64         `gorm:"index;not null" json:"fromWarehouseId"`
+	FromLocationID    uint64         `gorm:"default:0" json:"fromLocationId"`
+	ToWarehouseID     uint64         `gorm:"index;not null" json:"toWarehouseId"`
+	ToLocationID      uint64         `gorm:"default:0" json:"toLocationId"`
+	Status            string         `gorm:"size:32;default:draft" json:"status"`
+	Remark            string         `gorm:"size:512" json:"remark"`
+	ShippedAt         *time.Time     `json:"shippedAt"`
+	ReceivedAt        *time.Time     `json:"receivedAt"`
+	CreatedBy         uint64         `gorm:"default:0" json:"createdBy"`
+	CreatedAt         time.Time      `json:"createdAt"`
+	UpdatedAt         time.Time      `json:"updatedAt"`
+	Items             []TransferItem `gorm:"foreignKey:OrderID" json:"items,omitempty"`
+	FromWarehouseName string         `gorm:"-" json:"fromWarehouseName,omitempty"`
+	ToWarehouseName   string         `gorm:"-" json:"toWarehouseName,omitempty"`
+	TotalQty          float64        `gorm:"-" json:"totalQty"`
+	TotalAmount       float64        `gorm:"-" json:"totalAmount"`
 }
 
 func (TransferOrder) TableName() string { return "transfer_orders" }
 
 type TransferItem struct {
-	ID       uint64  `gorm:"primaryKey" json:"id"`
-	TenantID uint64  `gorm:"index;not null" json:"tenantId"`
-	OrderID  uint64  `gorm:"index;not null" json:"orderId"`
-	InvSkuID uint64  `gorm:"index;not null" json:"invSkuId"`
-	Qty      float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
-	Remark   string  `gorm:"size:256" json:"remark"`
-	SkuCode  string  `gorm:"-" json:"skuCode,omitempty"`
-	PickName string  `gorm:"-" json:"pickName,omitempty"`
+	ID        uint64  `gorm:"primaryKey" json:"id"`
+	TenantID  uint64  `gorm:"index;not null" json:"tenantId"`
+	OrderID   uint64  `gorm:"index;not null" json:"orderId"`
+	InvSkuID  uint64  `gorm:"index;not null" json:"invSkuId"`
+	Qty       float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
+	Remark    string  `gorm:"size:256" json:"remark"`
+	SkuCode   string  `gorm:"-" json:"skuCode,omitempty"`
+	PickName  string  `gorm:"-" json:"pickName,omitempty"`
+	WeightG   float64 `gorm:"-" json:"weightG,omitempty"`
+	UnitCost  float64 `gorm:"-" json:"unitCost,omitempty"`
+	Amount    float64 `gorm:"-" json:"amount,omitempty"`
+	Style1    string  `gorm:"-" json:"style1,omitempty"`
+	Style2    string  `gorm:"-" json:"style2,omitempty"`
+	Style3    string  `gorm:"-" json:"style3,omitempty"`
+	Brand     string  `gorm:"-" json:"brand,omitempty"`
+	SpecClass string  `gorm:"-" json:"specClass,omitempty"`
+	Model     string  `gorm:"-" json:"model,omitempty"`
+	Material  string  `gorm:"-" json:"material,omitempty"`
+	Unit      string  `gorm:"-" json:"unit,omitempty"`
 }
 
 func (TransferItem) TableName() string { return "transfer_items" }

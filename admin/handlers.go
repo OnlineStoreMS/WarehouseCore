@@ -707,7 +707,7 @@ func (h *Handlers) QuerySlowMoving(c *gin.Context) {
 func (h *Handlers) ListOtherIn(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
 	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
-	list, total, err := h.doc(c).ListOtherIn(c.Query("keyword"), c.Query("status"), whID, page, pageSize)
+	list, total, err := h.doc(c).ListOtherIn(c.Query("keyword"), c.Query("status"), c.Query("reason"), whID, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -773,7 +773,7 @@ func (h *Handlers) CancelOtherIn(c *gin.Context) {
 func (h *Handlers) ListOtherOut(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
 	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
-	list, total, err := h.doc(c).ListOtherOut(c.Query("keyword"), c.Query("status"), whID, page, pageSize)
+	list, total, err := h.doc(c).ListOtherOut(c.Query("keyword"), c.Query("status"), c.Query("reason"), whID, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -941,7 +941,19 @@ func (h *Handlers) ListStocktakeDetails(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
 	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
 	stkID, _ := strconv.ParseUint(c.Query("stocktakeId"), 10, 64)
-	list, total, err := h.doc(c).ListStocktakeDetails(c.Query("keyword"), whID, stkID, page, pageSize)
+	var from, to *time.Time
+	if v := c.Query("from"); v != "" {
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			from = &t
+		}
+	}
+	if v := c.Query("to"); v != "" {
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			end := t.Add(24*time.Hour - time.Nanosecond)
+			to = &end
+		}
+	}
+	list, total, err := h.doc(c).ListStocktakeDetails(c.Query("keyword"), c.Query("status"), whID, stkID, from, to, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return

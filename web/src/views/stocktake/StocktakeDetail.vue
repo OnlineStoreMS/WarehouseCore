@@ -15,10 +15,10 @@ const locationCode = ref('')
 const id = computed(() => Number(route.params.id))
 
 const statusMap: Record<string, string> = {
-  draft: '草稿',
+  draft: '未审核',
   counting: '盘点中',
-  review: '待过账',
-  posted: '已过账',
+  review: '已审核/已盘点',
+  posted: '已完结',
   cancelled: '已作废',
 }
 
@@ -126,8 +126,11 @@ function diffOf(row: any) {
       <el-table :data="items" border stripe>
         <el-table-column prop="skuCode" label="库存SKU" width="140" />
         <el-table-column prop="pickName" label="配货名称" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="locationCode" label="库位" width="120" />
-        <el-table-column prop="bookQty" label="账存数量" width="110" align="right" />
+        <el-table-column prop="locationCode" label="库位" width="100" />
+        <el-table-column prop="bookQty" label="账存数量" width="100" align="right" />
+        <el-table-column label="账存金额" width="100" align="right">
+          <template #default="{ row }">{{ Number(row.bookAmount || 0).toFixed(2) }}</template>
+        </el-table-column>
         <el-table-column label="实盘数量" width="140">
           <template #default="{ row }">
             <el-input-number
@@ -141,9 +144,14 @@ function diffOf(row: any) {
             <span v-else>{{ row.countQty }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="差额" width="100" align="right">
+        <el-table-column label="差额数量" width="100" align="right">
           <template #default="{ row }">
             {{ canEditCount ? diffOf(row) : row.diffQty }}
+          </template>
+        </el-table-column>
+        <el-table-column label="差额金额" width="100" align="right">
+          <template #default="{ row }">
+            {{ ((canEditCount ? diffOf(row) : Number(row.diffQty) || 0) * (Number(row.unitCost) || 0)).toFixed(2) }}
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="140">

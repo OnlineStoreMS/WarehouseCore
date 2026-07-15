@@ -21,15 +21,25 @@ const detailVisible = ref(false)
 const detail = ref<any>(null)
 
 const statusMap: Record<string, string> = {
-  draft: '草稿',
-  in_transit: '在途',
-  received: '已收货',
-  cancelled: '已取消',
+  draft: '未审核',
+  in_transit: '仓库已审核',
+  received: '已完结',
+  cancelled: '已作废',
+}
+
+function fmtTime(v?: string) {
+  if (!v) return '-'
+  return String(v).replace('T', ' ').slice(0, 19)
+}
+
+function fmtNum(v?: number, digits = 2) {
+  if (v == null || Number.isNaN(Number(v))) return '-'
+  return Number(v).toFixed(digits)
 }
 
 async function loadWarehouses() {
   const res = await api.listWarehouses({ page: 1, pageSize: 200 })
-  warehouses.value = res.list
+  warehouses.value = (res.list || []).filter((w: any) => w.status !== 0)
 }
 
 async function load() {
@@ -67,14 +77,6 @@ function onTabChange() {
   load()
 }
 
-function sumQty(row: any) {
-  return (row.items || []).reduce((s: number, i: any) => s + (Number(i.qty) || 0), 0)
-}
-
-function whName(id: number) {
-  return warehouses.value.find((w) => w.id === id)?.name || id
-}
-
 function openCreate() {
   form.value = {
     fromWarehouseId: warehouses.value[0]?.id,
@@ -103,6 +105,10 @@ async function create() {
       ElMessage.warning('请选择调出/调入仓')
       return
     }
+    if (body.fromWarehouseId === body.toWarehouseId) {
+      ElMessage.warning('调出仓与调入仓不能相同')
+      return
+    }
     if (!body.items.length) {
       ElMessage.warning('请添加明细')
       return
@@ -126,14 +132,14 @@ async function showDetail(row: any) {
 }
 
 async function ship(row: any) {
-  await ElMessageBox.confirm('确认发货？', '提示')
+  await ElMessageBox.confirm('确认仓库审核发货？', '提示')
   await api.shipTransfer(row.id)
   ElMessage.success('已发货')
   await load()
 }
 
 async function receive(row: any) {
-  await ElMessageBox.confirm('确认收货？', '提示')
+  await ElMessageBox.confirm('确认收货完结？', '提示')
   await api.receiveTransfer(row.id)
   ElMessage.success('已收货')
   await load()
@@ -145,11 +151,6 @@ async function cancel(row: any) {
   ElMessage.success('已作废')
   await load()
 }
-
-function fmtTime(v: string) {
-  if (!v) return '-'
-  return String(v).replace('T', ' ').slice(0, 19)
-}
 </script>
 
 <template>
@@ -158,51 +159,63 @@ function fmtTime(v: string) {
       <template #header>
         <div class="hdr">
           <span>仓库调拨单</span>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新建调拨</el-button>
+          <el-button type="primary" :icon="Plus" @click="openCreate">新增</el-button>
         </div>
       </template>
 
       <el-tabs v-model="statusTab" @tab-change="onTabChange">
         <el-tab-pane label="全部" name="all" />
-        <el-tab-pane label="草稿" name="draft" />
-        <el-tab-pane label="在途" name="in_transit" />
-        <el-tab-pane label="已收货" name="received" />
-        <el-tab-pane label="已取消" name="cancelled" />
+        <el-tab-pane label="未审核" name="draft" />
+        <el-tab-pane label="仓库已审核" name="in_transit" />
+        <el-tab-pane label="已完结" name="received" />
+        <el-tab-pane label="已作废" name="cancelled" />
       </el-tabs>
 
       <div class="toolbar">
-        <el-select v-model="fromWarehouseId" clearable placeholder="出库仓" style="width: 160px">
+        <el-select v-model="fromWarehouseId" clearable filterable placeholder="出库仓库" style="width: 160px" @change="search">
           <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
-        <el-select v-model="toWarehouseId" clearable placeholder="入库仓" style="width: 160px">
+        <el-select v-model="toWarehouseId" clearable filterable placeholder="入库仓库" style="width: 160px" @change="search">
           <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
-        <el-input v-model="keyword" clearable placeholder="单号" style="width: 180px" @keyup.enter="search" />
+        <el-input v-model="keyword" clearable placeholder="调拨单号" style="width: 180px" @keyup.enter="search" />
         <el-button type="primary" @click="search">查询</el-button>
       </div>
 
       <el-table :data="list" border stripe>
-        <el-table-column prop="docNo" label="调拨单号" width="160" />
-        <el-table-column label="调出仓库" width="130">
-          <template #default="{ row }">{{ whName(row.fromWarehouseId) }}</template>
-        </el-table-column>
-        <el-table-column label="调入仓库" width="130">
-          <template #default="{ row }">{{ whName(row.toWarehouseId) }}</template>
-        </el-table-column>
-        <el-table-column label="总数量" width="100" align="right">
-          <template #default="{ row }">{{ sumQty(row) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="调拨单状态" width="110">
           <template #default="{ row }">{{ statusMap[row.status] || row.status }}</template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-        <el-table-column label="制单时间" width="170">
+        <el-table-column label="制单日期" width="170">
           <template #default="{ row }">{{ fmtTime(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column prop="docNo" label="调拨单号" width="160" show-overflow-tooltip />
+        <el-table-column label="调出仓库" width="130" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.fromWarehouseName || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="调入仓库" width="130" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.toWarehouseName || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="总数量" width="100" align="right">
+          <template #default="{ row }">{{ fmtNum(row.totalQty, 0) }}</template>
+        </el-table-column>
+        <el-table-column label="出库总金额" width="110" align="right">
+          <template #default="{ row }">{{ fmtNum(row.totalAmount) }}</template>
+        </el-table-column>
+        <el-table-column label="入库总金额" width="110" align="right">
+          <template #default="{ row }">{{ fmtNum(row.totalAmount) }}</template>
+        </el-table-column>
+        <el-table-column label="审核时间" width="170">
+          <template #default="{ row }">{{ fmtTime(row.shippedAt) }}</template>
+        </el-table-column>
+        <el-table-column label="完结时间" width="170">
+          <template #default="{ row }">{{ fmtTime(row.receivedAt) }}</template>
+        </el-table-column>
+        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="showDetail(row)">明细</el-button>
-            <el-button v-if="row.status === 'draft'" link type="primary" @click="ship(row)">发货</el-button>
+            <el-button v-if="row.status === 'draft'" link type="primary" @click="ship(row)">仓库审核</el-button>
             <el-button v-if="row.status === 'in_transit'" link type="success" @click="receive(row)">收货</el-button>
             <el-button v-if="row.status === 'draft'" link type="danger" @click="cancel(row)">作废</el-button>
           </template>
@@ -210,22 +223,24 @@ function fmtTime(v: string) {
       </el-table>
       <el-pagination
         class="pager"
-        layout="total, prev, pager, next"
+        layout="total, sizes, prev, pager, next"
         :total="total"
         v-model:current-page="page"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
+        :page-sizes="[20, 50, 100]"
         @current-change="load"
+        @size-change="search"
       />
     </el-card>
 
-    <el-dialog v-model="visible" title="新建调拨单" width="720px">
+    <el-dialog v-model="visible" title="新增调拨单" width="720px">
       <el-form :model="form" label-width="100px">
-        <el-form-item label="调出仓" required>
+        <el-form-item label="调出仓库" required>
           <el-select v-model="form.fromWarehouseId" style="width: 100%">
             <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="调入仓" required>
+        <el-form-item label="调入仓库" required>
           <el-select v-model="form.toWarehouseId" style="width: 100%">
             <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
           </el-select>
@@ -238,7 +253,7 @@ function fmtTime(v: string) {
                 <SkuSearchSelect v-model="row.invSkuId" />
               </template>
             </el-table-column>
-            <el-table-column label="数量" width="130">
+            <el-table-column label="调拨数量" width="130">
               <template #default="{ row }">
                 <el-input-number v-model="row.qty" :min="0.0001" :controls="false" style="width: 110px" />
               </template>
@@ -258,19 +273,33 @@ function fmtTime(v: string) {
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailVisible" title="调拨明细" size="520px">
+    <el-drawer v-model="detailVisible" title="调拨单商品明细" size="720px">
       <template v-if="detail">
-        <el-descriptions :column="1" border class="mb">
+        <el-descriptions :column="2" border class="mb">
           <el-descriptions-item label="调拨单号">{{ detail.docNo }}</el-descriptions-item>
-          <el-descriptions-item label="调出仓库">{{ whName(detail.fromWarehouseId) }}</el-descriptions-item>
-          <el-descriptions-item label="调入仓库">{{ whName(detail.toWarehouseId) }}</el-descriptions-item>
           <el-descriptions-item label="状态">{{ statusMap[detail.status] || detail.status }}</el-descriptions-item>
-          <el-descriptions-item label="备注">{{ detail.remark || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="调出仓库">{{ detail.fromWarehouseName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="调入仓库">{{ detail.toWarehouseName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="总数量">{{ fmtNum(detail.totalQty, 0) }}</el-descriptions-item>
+          <el-descriptions-item label="总金额">{{ fmtNum(detail.totalAmount) }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
         </el-descriptions>
-        <el-table :data="detail.items || []" border stripe size="small">
-          <el-table-column prop="skuCode" label="库存SKU" min-width="120" />
+        <el-table :data="detail.items || []" border stripe size="small" max-height="480">
+          <el-table-column prop="skuCode" label="库存SKU" width="120" show-overflow-tooltip />
           <el-table-column prop="pickName" label="配货名称" min-width="120" show-overflow-tooltip />
-          <el-table-column prop="qty" label="数量" width="90" align="right" />
+          <el-table-column prop="qty" label="调拨数量" width="90" align="right" />
+          <el-table-column label="重量(g)" width="90" align="right">
+            <template #default="{ row }">{{ fmtNum(row.weightG, 1) }}</template>
+          </el-table-column>
+          <el-table-column label="成本单价" width="100" align="right">
+            <template #default="{ row }">{{ fmtNum(row.unitCost) }}</template>
+          </el-table-column>
+          <el-table-column label="金额" width="100" align="right">
+            <template #default="{ row }">{{ fmtNum(row.amount) }}</template>
+          </el-table-column>
+          <el-table-column prop="style1" label="款式1" width="80" show-overflow-tooltip />
+          <el-table-column prop="brand" label="品牌" width="80" show-overflow-tooltip />
+          <el-table-column prop="remark" label="商品备注" min-width="100" show-overflow-tooltip />
         </el-table>
       </template>
     </el-drawer>
