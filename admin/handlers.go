@@ -583,7 +583,9 @@ func (h *Handlers) QueryBalances(c *gin.Context) {
 	catID, _ := strconv.ParseUint(c.Query("categoryId"), 10, 64)
 	list, total, err := h.query(c).QueryBalances(dto.StockQuery{
 		WarehouseID: whID, LocationID: locID, InvSkuID: skuID, CategoryID: catID,
-		SkuCode: c.Query("skuCode"), Keyword: c.Query("keyword"), Page: page, PageSize: pageSize,
+		SkuCode: c.Query("skuCode"), Keyword: c.Query("keyword"),
+		HideZero: c.Query("hideZero") == "1" || c.Query("hideZero") == "true",
+		Page: page, PageSize: pageSize,
 	})
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
@@ -607,7 +609,7 @@ func (h *Handlers) QuerySummary(c *gin.Context) {
 			to = &end
 		}
 	}
-	list, total, err := h.query(c).QuerySummary(whID, from, to, page, pageSize)
+	list, total, err := h.query(c).QuerySummary(whID, c.Query("skuCode"), from, to, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -631,7 +633,7 @@ func (h *Handlers) QueryMovements(c *gin.Context) {
 			to = &end
 		}
 	}
-	list, total, err := h.query(c).QueryMovements(whID, skuID, c.Query("moveType"), c.Query("docNo"), from, to, page, pageSize)
+	list, total, err := h.query(c).QueryMovements(whID, skuID, c.Query("skuCode"), c.Query("moveType"), c.Query("docNo"), from, to, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -658,7 +660,8 @@ func (h *Handlers) QuerySlowMoving(c *gin.Context) {
 
 func (h *Handlers) ListOtherIn(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.doc(c).ListOtherIn(c.Query("keyword"), c.Query("status"), page, pageSize)
+	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
+	list, total, err := h.doc(c).ListOtherIn(c.Query("keyword"), c.Query("status"), whID, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -723,7 +726,8 @@ func (h *Handlers) CancelOtherIn(c *gin.Context) {
 
 func (h *Handlers) ListOtherOut(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.doc(c).ListOtherOut(c.Query("keyword"), c.Query("status"), page, pageSize)
+	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
+	list, total, err := h.doc(c).ListOtherOut(c.Query("keyword"), c.Query("status"), whID, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -790,7 +794,8 @@ func (h *Handlers) CancelOtherOut(c *gin.Context) {
 
 func (h *Handlers) ListStocktakes(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.doc(c).ListStocktakes(c.Query("keyword"), c.Query("status"), page, pageSize)
+	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
+	list, total, err := h.doc(c).ListStocktakes(c.Query("keyword"), c.Query("status"), whID, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -888,7 +893,9 @@ func (h *Handlers) CancelStocktake(c *gin.Context) {
 
 func (h *Handlers) ListStocktakeDetails(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.doc(c).ListStocktakeDetails(c.Query("keyword"), page, pageSize)
+	whID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
+	stkID, _ := strconv.ParseUint(c.Query("stocktakeId"), 10, 64)
+	list, total, err := h.doc(c).ListStocktakeDetails(c.Query("keyword"), whID, stkID, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -900,7 +907,9 @@ func (h *Handlers) ListStocktakeDetails(c *gin.Context) {
 
 func (h *Handlers) ListTransfers(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.doc(c).ListTransfers(c.Query("keyword"), c.Query("status"), page, pageSize)
+	fromID, _ := strconv.ParseUint(c.Query("fromWarehouseId"), 10, 64)
+	toID, _ := strconv.ParseUint(c.Query("toWarehouseId"), 10, 64)
+	list, total, err := h.doc(c).ListTransfers(c.Query("keyword"), c.Query("status"), fromID, toID, page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return

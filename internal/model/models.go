@@ -357,6 +357,8 @@ type OtherInboundItem struct {
 	Qty      float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
 	Cost     float64 `gorm:"type:numeric(14,4);default:0" json:"cost"`
 	Remark   string  `gorm:"size:256" json:"remark"`
+	SkuCode  string  `gorm:"-" json:"skuCode,omitempty"`
+	PickName string  `gorm:"-" json:"pickName,omitempty"`
 }
 
 func (OtherInboundItem) TableName() string { return "other_inbound_items" }
@@ -386,6 +388,8 @@ type OtherOutboundItem struct {
 	InvSkuID uint64  `gorm:"index;not null" json:"invSkuId"`
 	Qty      float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
 	Remark   string  `gorm:"size:256" json:"remark"`
+	SkuCode  string  `gorm:"-" json:"skuCode,omitempty"`
+	PickName string  `gorm:"-" json:"pickName,omitempty"`
 }
 
 func (OtherOutboundItem) TableName() string { return "other_outbound_items" }
@@ -410,15 +414,21 @@ type StocktakeOrder struct {
 func (StocktakeOrder) TableName() string { return "stocktake_orders" }
 
 type StocktakeItem struct {
-	ID          uint64  `gorm:"primaryKey" json:"id"`
-	TenantID    uint64  `gorm:"index;not null" json:"tenantId"`
-	OrderID     uint64  `gorm:"index;not null" json:"orderId"`
-	LocationID  uint64  `gorm:"index;not null" json:"locationId"`
-	InvSkuID    uint64  `gorm:"index;not null" json:"invSkuId"`
-	BookQty     float64 `gorm:"type:numeric(14,4);default:0" json:"bookQty"`
-	CountQty    float64 `gorm:"type:numeric(14,4);default:0" json:"countQty"`
-	DiffQty     float64 `gorm:"type:numeric(14,4);default:0" json:"diffQty"`
-	Remark      string  `gorm:"size:256" json:"remark"`
+	ID           uint64  `gorm:"primaryKey" json:"id"`
+	TenantID     uint64  `gorm:"index;not null" json:"tenantId"`
+	OrderID      uint64  `gorm:"index;not null" json:"orderId"`
+	LocationID   uint64  `gorm:"index;not null" json:"locationId"`
+	InvSkuID     uint64  `gorm:"index;not null" json:"invSkuId"`
+	BookQty      float64 `gorm:"type:numeric(14,4);default:0" json:"bookQty"`
+	CountQty     float64 `gorm:"type:numeric(14,4);default:0" json:"countQty"`
+	DiffQty      float64 `gorm:"type:numeric(14,4);default:0" json:"diffQty"`
+	Remark       string  `gorm:"size:256" json:"remark"`
+	SkuCode      string  `gorm:"-" json:"skuCode,omitempty"`
+	PickName     string  `gorm:"-" json:"pickName,omitempty"`
+	LocationCode string  `gorm:"-" json:"locationCode,omitempty"`
+	DocNo        string  `gorm:"-" json:"docNo,omitempty"`
+	WarehouseID  uint64  `gorm:"-" json:"warehouseId,omitempty"`
+	WarehouseName string `gorm:"-" json:"warehouseName,omitempty"`
 }
 
 func (StocktakeItem) TableName() string { return "stocktake_items" }
@@ -452,6 +462,8 @@ type TransferItem struct {
 	InvSkuID uint64  `gorm:"index;not null" json:"invSkuId"`
 	Qty      float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
 	Remark   string  `gorm:"size:256" json:"remark"`
+	SkuCode  string  `gorm:"-" json:"skuCode,omitempty"`
+	PickName string  `gorm:"-" json:"pickName,omitempty"`
 }
 
 func (TransferItem) TableName() string { return "transfer_items" }

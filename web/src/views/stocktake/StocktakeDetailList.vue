@@ -8,7 +8,7 @@ const list = ref<any[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
-const stocktakeId = ref<number | undefined>()
+const keyword = ref('')
 const warehouseId = ref<number | undefined>()
 const warehouses = ref<any[]>([])
 
@@ -23,7 +23,7 @@ async function load() {
     const res = await api.listStocktakeDetails({
       page: page.value,
       pageSize: pageSize.value,
-      stocktakeId: stocktakeId.value,
+      keyword: keyword.value || undefined,
       warehouseId: warehouseId.value,
     })
     list.value = res.list
@@ -51,22 +51,27 @@ function search() {
     <el-card v-loading="loading">
       <template #header><span>盘点明细表</span></template>
       <div class="toolbar">
-        <el-select v-model="warehouseId" clearable placeholder="全部仓库" style="width: 180px" @change="search">
+        <el-select v-model="warehouseId" clearable placeholder="全部仓库" style="width: 180px">
           <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
-        <el-input-number v-model="stocktakeId" :min="1" placeholder="盘点单ID" controls-position="right" />
+        <el-input
+          v-model="keyword"
+          clearable
+          placeholder="单号/SKU"
+          style="width: 220px"
+          @keyup.enter="search"
+        />
         <el-button type="primary" @click="search">查询</el-button>
       </div>
       <el-table :data="list" border stripe>
-        <el-table-column prop="orderId" label="盘点单ID" width="110" />
-        <el-table-column prop="docNo" label="单号" width="150" />
-        <el-table-column prop="warehouseId" label="仓库ID" width="100" />
-        <el-table-column prop="locationId" label="库位ID" width="100" />
-        <el-table-column prop="invSkuId" label="SKU ID" width="100" />
-        <el-table-column prop="skuCode" label="SKU编码" width="140" />
-        <el-table-column prop="bookQty" label="账面" width="100" align="right" />
+        <el-table-column prop="docNo" label="盘点单号" width="150" />
+        <el-table-column prop="warehouseName" label="仓库" width="140" />
+        <el-table-column prop="skuCode" label="库存SKU" width="140" />
+        <el-table-column prop="pickName" label="配货名称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="locationCode" label="库位" width="120" />
+        <el-table-column prop="bookQty" label="账存" width="100" align="right" />
         <el-table-column prop="countQty" label="实盘" width="100" align="right" />
-        <el-table-column prop="diffQty" label="差异" width="100" align="right" />
+        <el-table-column prop="diffQty" label="差额" width="100" align="right" />
         <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
       </el-table>
       <el-pagination

@@ -58,13 +58,15 @@ function search() {
         <el-button type="primary" @click="search">查询</el-button>
       </div>
       <el-table :data="list" border stripe>
-        <el-table-column prop="warehouseName" label="仓库" width="140" />
-        <el-table-column prop="skuCode" label="SKU编码" width="140" />
-        <el-table-column prop="productName" label="商品名" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="opening" label="期初" width="100" align="right" />
-        <el-table-column prop="inbound" label="入库" width="100" align="right" />
-        <el-table-column prop="outbound" label="出库" width="100" align="right" />
-        <el-table-column prop="closing" label="期末" width="100" align="right" />
+        <el-table-column prop="warehouseName" label="仓库名称" width="140" />
+        <el-table-column prop="skuCode" label="库存SKU" width="140" />
+        <el-table-column label="配货/商品名" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.pickName || row.productName || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="opening" label="期初数量" width="110" align="right" />
+        <el-table-column prop="inbound" label="入库数量" width="110" align="right" />
+        <el-table-column prop="outbound" label="出库数量" width="110" align="right" />
+        <el-table-column prop="closing" label="期末数量" width="110" align="right" />
       </el-table>
       <el-pagination
         class="pager"

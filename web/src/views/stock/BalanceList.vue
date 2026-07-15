@@ -13,6 +13,7 @@ const warehouses = ref<any[]>([])
 const warehouseId = ref<number | undefined>()
 const keyword = ref('')
 const skuCode = ref('')
+const hideZero = ref(false)
 
 async function loadWarehouses() {
   const res = await api.listWarehouses({ page: 1, pageSize: 200 })
@@ -28,6 +29,7 @@ async function load() {
       warehouseId: warehouseId.value,
       keyword: keyword.value,
       skuCode: skuCode.value,
+      hideZero: hideZero.value || undefined,
     })
     list.value = res.list
     total.value = res.total
@@ -59,18 +61,17 @@ function search() {
         </el-select>
         <el-input v-model="skuCode" placeholder="SKU编码" clearable style="width: 160px" @change="search" />
         <el-input v-model="keyword" placeholder="关键词" clearable :prefix-icon="Search" style="width: 200px" @change="search" />
+        <el-checkbox v-model="hideZero" @change="search">隐藏库存为0</el-checkbox>
         <el-button type="primary" @click="search">查询</el-button>
       </div>
       <el-table :data="list" border stripe>
-        <el-table-column prop="warehouseName" label="仓库" width="140" />
+        <el-table-column prop="skuCode" label="库存SKU" width="140" />
+        <el-table-column prop="pickName" label="配货名称" min-width="140" />
+        <el-table-column prop="warehouseName" label="发货仓库" width="140" />
+        <el-table-column prop="onHand" label="库存数量" width="110" align="right" />
         <el-table-column prop="locationCode" label="库位" width="120" />
-        <el-table-column prop="skuCode" label="SKU编码" width="140" />
-        <el-table-column prop="pickName" label="拣货名" min-width="140" />
-        <el-table-column prop="productName" label="商品名" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="onHand" label="结存" width="100" align="right" />
-        <el-table-column prop="lastCost" label="最近成本" width="110" align="right" />
+        <el-table-column prop="lastCost" label="库存单价" width="110" align="right" />
         <el-table-column prop="retailPrice" label="零售价" width="100" align="right" />
-        <el-table-column prop="updatedAt" label="更新时间" width="170" />
       </el-table>
       <el-pagination
         class="pager"
@@ -85,6 +86,6 @@ function search() {
 </template>
 
 <style scoped>
-.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .pager { margin-top: 16px; justify-content: flex-end; }
 </style>

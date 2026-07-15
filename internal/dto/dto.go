@@ -392,6 +392,7 @@ type StockQuery struct {
 	SkuCode     string
 	CategoryID  uint64
 	Keyword     string
+	HideZero    bool
 	Page        int
 	PageSize    int
 }

@@ -51,6 +51,9 @@ func (s *QueryService) QueryBalances(q dto.StockQuery) ([]dto.BalanceRow, int64,
 		like := "%" + q.Keyword + "%"
 		db = db.Where("s.sku_code ILIKE ? OR s.pick_name ILIKE ? OR p.name ILIKE ?", like, like, like)
 	}
+	if q.HideZero {
+		db = db.Where("b.on_hand <> 0")
+	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -67,7 +70,7 @@ func (s *QueryService) QueryBalances(q dto.StockQuery) ([]dto.BalanceRow, int64,
 	return list, total, err
 }
 
-func (s *QueryService) QuerySummary(warehouseID uint64, from, to *time.Time, page, pageSize int) ([]dto.SummaryRow, int64, error) {
+func (s *QueryService) QuerySummary(warehouseID uint64, skuCode string, from, to *time.Time, page, pageSize int) ([]dto.SummaryRow, int64, error) {
 	// Closing = current on_hand; inbound/outbound from movements in range; opening = closing - in + out
 	type agg struct {
 		WarehouseID uint64
@@ -104,6 +107,9 @@ func (s *QueryService) QuerySummary(warehouseID uint64, from, to *time.Time, pag
 		Group("b.warehouse_id, w.name, b.inv_sku_id, s.sku_code, p.name, a.inbound, a.outbound")
 	if warehouseID > 0 {
 		bq = bq.Where("b.warehouse_id = ?", warehouseID)
+	}
+	if skuCode != "" {
+		bq = bq.Where("s.sku_code ILIKE ?", "%"+skuCode+"%")
 	}
 
 	var total int64
@@ -147,7 +153,7 @@ func (s *QueryService) QuerySummary(warehouseID uint64, from, to *time.Time, pag
 	return list, total, nil
 }
 
-func (s *QueryService) QueryMovements(warehouseID, invSkuID uint64, moveType, docNo string, from, to *time.Time, page, pageSize int) ([]dto.MovementRow, int64, error) {
+func (s *QueryService) QueryMovements(warehouseID, invSkuID uint64, skuCode, moveType, docNo string, from, to *time.Time, page, pageSize int) ([]dto.MovementRow, int64, error) {
 	db := s.repos.DB.Table("stock_movements AS m").
 		Select(`m.id, m.created_at, m.warehouse_id, w.name AS warehouse_name, l.code AS location_code,
 			m.inv_sku_id, s.sku_code, m.move_type, m.qty, m.balance_after, m.doc_type, m.doc_no, m.remark`).
@@ -160,6 +166,9 @@ func (s *QueryService) QueryMovements(warehouseID, invSkuID uint64, moveType, do
 	}
 	if invSkuID > 0 {
 		db = db.Where("m.inv_sku_id = ?", invSkuID)
+	}
+	if skuCode != "" {
+		db = db.Where("s.sku_code ILIKE ?", "%"+skuCode+"%")
 	}
 	if moveType != "" {
 		db = db.Where("m.move_type = ?", moveType)

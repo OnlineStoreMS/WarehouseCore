@@ -55,12 +55,12 @@ function search() {
           <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
         <span>闲置天数 ≥</span>
-        <el-input-number v-model="days" :min="1" :max="3650" />
+        <el-input-number v-model="days" :min="1" :max="3650" :controls="false" style="width: 100px" />
         <el-button type="primary" @click="search">查询</el-button>
       </div>
       <el-table :data="list" border stripe>
         <el-table-column prop="warehouseName" label="仓库" width="140" />
-        <el-table-column prop="skuCode" label="SKU编码" width="140" />
+        <el-table-column prop="skuCode" label="库存SKU" width="140" />
         <el-table-column prop="productName" label="商品名" min-width="160" show-overflow-tooltip />
         <el-table-column prop="onHand" label="结存" width="100" align="right" />
         <el-table-column prop="lastMoveAt" label="最近移动" width="170" />

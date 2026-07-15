@@ -9,6 +9,8 @@ const router = useRouter()
 const loading = ref(false)
 const detail = ref<any>(null)
 const items = ref<any[]>([])
+const warehouses = ref<any[]>([])
+const locationCode = ref('')
 
 const id = computed(() => Number(route.params.id))
 
@@ -17,7 +19,29 @@ const statusMap: Record<string, string> = {
   counting: '盘点中',
   review: '待过账',
   posted: '已过账',
-  cancelled: '已取消',
+  cancelled: '已作废',
+}
+
+async function loadWarehouses() {
+  const res = await api.listWarehouses({ page: 1, pageSize: 200 })
+  warehouses.value = res.list
+}
+
+function whName(warehouseId: number) {
+  return warehouses.value.find((w) => w.id === warehouseId)?.name || warehouseId
+}
+
+async function resolveLocationCode(warehouseId: number, locationId: number) {
+  if (!locationId) {
+    locationCode.value = ''
+    return
+  }
+  try {
+    const res = await api.listLocations({ warehouseId, page: 1, pageSize: 200 })
+    locationCode.value = res.list?.find((l: any) => l.id === locationId)?.code || String(locationId)
+  } catch {
+    locationCode.value = String(locationId)
+  }
 }
 
 async function load() {
@@ -25,6 +49,7 @@ async function load() {
   try {
     detail.value = await api.getStocktake(id.value)
     items.value = (detail.value.items || []).map((i: any) => ({ ...i }))
+    await resolveLocationCode(detail.value.warehouseId, detail.value.locationId)
   } catch (e) {
     ElMessage.error((e as Error).message || '加载失败')
   } finally {
@@ -32,7 +57,10 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await loadWarehouses()
+  await load()
+})
 watch(id, load)
 
 async function start() {
@@ -57,13 +85,19 @@ async function post() {
 }
 
 async function cancel() {
-  await ElMessageBox.confirm('确认取消该盘点单？', '提示', { type: 'warning' })
+  await ElMessageBox.confirm('确认作废该盘点单？', '提示', { type: 'warning' })
   await api.cancelStocktake(id.value)
-  ElMessage.success('已取消')
+  ElMessage.success('已作废')
   await load()
 }
 
 const canEditCount = computed(() => ['draft', 'counting'].includes(detail.value?.status))
+
+function diffOf(row: any) {
+  const book = Number(row.bookQty) || 0
+  const count = Number(row.countQty) || 0
+  return count - book
+}
 </script>
 
 <template>
@@ -80,33 +114,38 @@ const canEditCount = computed(() => ['draft', 'counting'].includes(detail.value?
             <el-button v-if="detail.status === 'draft'" type="primary" @click="start">开始盘点</el-button>
             <el-button v-if="canEditCount" type="success" @click="submitCount">提交盘点</el-button>
             <el-button v-if="detail.status === 'counting' || detail.status === 'review'" type="warning" @click="post">过账</el-button>
-            <el-button v-if="detail.status !== 'posted' && detail.status !== 'cancelled'" type="danger" @click="cancel">取消</el-button>
+            <el-button v-if="detail.status !== 'posted' && detail.status !== 'cancelled'" type="danger" @click="cancel">作废</el-button>
           </div>
         </div>
       </template>
       <el-descriptions :column="3" border class="mb">
-        <el-descriptions-item label="仓库ID">{{ detail.warehouseId }}</el-descriptions-item>
-        <el-descriptions-item label="库位ID">{{ detail.locationId || '全仓' }}</el-descriptions-item>
+        <el-descriptions-item label="盘点仓库">{{ whName(detail.warehouseId) }}</el-descriptions-item>
+        <el-descriptions-item label="库位">{{ locationCode || (detail.locationId ? detail.locationId : '全仓') }}</el-descriptions-item>
         <el-descriptions-item label="备注">{{ detail.remark || '-' }}</el-descriptions-item>
       </el-descriptions>
       <el-table :data="items" border stripe>
-        <el-table-column prop="invSkuId" label="SKU ID" width="100" />
-        <el-table-column prop="locationId" label="库位ID" width="100" />
-        <el-table-column prop="bookQty" label="账面数" width="110" align="right" />
-        <el-table-column label="实盘数" width="140">
+        <el-table-column prop="skuCode" label="库存SKU" width="140" />
+        <el-table-column prop="pickName" label="配货名称" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="locationCode" label="库位" width="120" />
+        <el-table-column prop="bookQty" label="账存数量" width="110" align="right" />
+        <el-table-column label="实盘数量" width="140">
           <template #default="{ row }">
             <el-input-number
               v-if="canEditCount"
               v-model="row.countQty"
               :min="0"
               :precision="4"
-              controls-position="right"
+              :controls="false"
               style="width: 120px"
             />
             <span v-else>{{ row.countQty }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="diffQty" label="差异" width="100" align="right" />
+        <el-table-column label="差额" width="100" align="right">
+          <template #default="{ row }">
+            {{ canEditCount ? diffOf(row) : row.diffQty }}
+          </template>
+        </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="140">
           <template #default="{ row }">
             <el-input v-if="canEditCount" v-model="row.remark" size="small" />

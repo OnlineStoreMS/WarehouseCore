@@ -101,7 +101,7 @@ async function remove(row: any) {
       <template #header>
         <div class="hdr">
           <span>库位管理</span>
-          <el-button type="primary" :icon="Plus" :disabled="!warehouseId" @click="openCreate">新建库位</el-button>
+          <el-button type="primary" :icon="Plus" :disabled="!warehouseId" @click="openCreate">新增库位</el-button>
         </div>
       </template>
       <div class="toolbar">
@@ -111,7 +111,7 @@ async function remove(row: any) {
         </el-select>
       </div>
       <el-table :data="list" border stripe>
-        <el-table-column prop="code" label="库位编码" width="140" />
+        <el-table-column prop="code" label="库位名称" width="140" />
         <el-table-column prop="zone" label="库区" width="100" />
         <el-table-column prop="aisle" label="巷道" width="100" />
         <el-table-column prop="shelf" label="货架" width="100" />
@@ -140,7 +140,7 @@ async function remove(row: any) {
       />
     </el-card>
 
-    <el-dialog v-model="visible" :title="form.id ? '编辑库位' : '新建库位'" width="520px">
+    <el-dialog v-model="visible" :title="form.id ? '编辑库位' : '新增库位'" width="520px">
       <el-form :model="form" label-width="90px">
         <el-form-item label="仓库">
           <el-select v-model="form.warehouseId" style="width: 100%">

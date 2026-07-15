@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
+import SkuSearchSelect from '../../components/SkuSearchSelect.vue'
+import LocationSelect from '../../components/LocationSelect.vue'
 
 const loading = ref(false)
 const list = ref<any[]>([])
@@ -10,13 +12,25 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const warehouses = ref<any[]>([])
+const statusTab = ref('all')
+const warehouseId = ref<number | undefined>()
+const keyword = ref('')
 const visible = ref(false)
 const form = ref<any>({})
+const detailVisible = ref(false)
+const detail = ref<any>(null)
 
 const statusMap: Record<string, string> = {
-  draft: '草稿',
+  draft: '未审核',
   posted: '已过账',
-  cancelled: '已取消',
+  cancelled: '已作废',
+}
+
+const reasonMap: Record<string, string> = {
+  opening: '期初',
+  gift: '赠品',
+  return: '退货',
+  adjust: '调整',
 }
 
 async function loadWarehouses() {
@@ -27,7 +41,13 @@ async function loadWarehouses() {
 async function load() {
   loading.value = true
   try {
-    const res = await api.listOtherIn({ page: page.value, pageSize: pageSize.value })
+    const res = await api.listOtherIn({
+      page: page.value,
+      pageSize: pageSize.value,
+      status: statusTab.value === 'all' ? undefined : statusTab.value,
+      warehouseId: warehouseId.value,
+      keyword: keyword.value || undefined,
+    })
     list.value = res.list
     total.value = res.total
   } catch (e) {
@@ -42,9 +62,28 @@ onMounted(async () => {
   await load()
 })
 
+function search() {
+  page.value = 1
+  load()
+}
+
+function onTabChange() {
+  page.value = 1
+  load()
+}
+
+function sumQty(row: any) {
+  return (row.items || []).reduce((s: number, i: any) => s + (Number(i.qty) || 0), 0)
+}
+
+function whName(id: number) {
+  return warehouses.value.find((w) => w.id === id)?.name || id
+}
+
 function openCreate() {
   form.value = {
     warehouseId: warehouses.value[0]?.id,
+    locationId: null,
     reason: 'opening',
     remark: '',
     items: [{ invSkuId: undefined, qty: 1, cost: 0 }],
@@ -62,12 +101,34 @@ function removeItem(idx: number) {
 
 async function create() {
   try {
-    await api.createOtherIn(form.value)
+    const body = {
+      ...form.value,
+      locationId: form.value.locationId || 0,
+      items: (form.value.items || []).filter((i: any) => i.invSkuId),
+    }
+    if (!body.warehouseId) {
+      ElMessage.warning('请选择仓库')
+      return
+    }
+    if (!body.items.length) {
+      ElMessage.warning('请添加明细')
+      return
+    }
+    await api.createOtherIn(body)
     ElMessage.success('已创建')
     visible.value = false
     await load()
   } catch (e) {
     ElMessage.error((e as Error).message || '创建失败')
+  }
+}
+
+async function showDetail(row: any) {
+  try {
+    detail.value = await api.getOtherIn(row.id)
+    detailVisible.value = true
+  } catch (e) {
+    ElMessage.error((e as Error).message || '加载明细失败')
   }
 }
 
@@ -79,14 +140,15 @@ async function post(row: any) {
 }
 
 async function cancel(row: any) {
-  await ElMessageBox.confirm('确认取消？', '提示', { type: 'warning' })
+  await ElMessageBox.confirm('确认作废？', '提示', { type: 'warning' })
   await api.cancelOtherIn(row.id)
-  ElMessage.success('已取消')
+  ElMessage.success('已作废')
   await load()
 }
 
-function whName(id: number) {
-  return warehouses.value.find((w) => w.id === id)?.name || id
+function fmtTime(v: string) {
+  if (!v) return '-'
+  return String(v).replace('T', ' ').slice(0, 19)
 }
 </script>
 
@@ -95,25 +157,49 @@ function whName(id: number) {
     <el-card v-loading="loading">
       <template #header>
         <div class="hdr">
-          <span>其他入库单</span>
-          <el-button type="primary" :icon="Plus" @click="openCreate">新建入库</el-button>
+          <span>其它入库单</span>
+          <el-button type="primary" :icon="Plus" @click="openCreate">新建其它入库单</el-button>
         </div>
       </template>
+
+      <el-tabs v-model="statusTab" @tab-change="onTabChange">
+        <el-tab-pane label="全部" name="all" />
+        <el-tab-pane label="未审核" name="draft" />
+        <el-tab-pane label="已过账" name="posted" />
+        <el-tab-pane label="已作废" name="cancelled" />
+      </el-tabs>
+
+      <div class="toolbar">
+        <el-select v-model="warehouseId" clearable placeholder="入库仓库" style="width: 180px">
+          <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
+        </el-select>
+        <el-input v-model="keyword" clearable placeholder="单号" style="width: 200px" @keyup.enter="search" />
+        <el-button type="primary" @click="search">查询</el-button>
+      </div>
+
       <el-table :data="list" border stripe>
-        <el-table-column prop="docNo" label="单号" width="160" />
-        <el-table-column label="仓库" width="140">
+        <el-table-column prop="docNo" label="入库单号" width="160" />
+        <el-table-column label="入库仓库" width="140">
           <template #default="{ row }">{{ whName(row.warehouseId) }}</template>
         </el-table-column>
-        <el-table-column prop="reason" label="原因" width="110" />
+        <el-table-column label="入库类别" width="100">
+          <template #default="{ row }">{{ reasonMap[row.reason] || row.reason }}</template>
+        </el-table-column>
+        <el-table-column label="总数量" width="100" align="right">
+          <template #default="{ row }">{{ sumQty(row) }}</template>
+        </el-table-column>
+        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
+        <el-table-column label="制单时间" width="170">
+          <template #default="{ row }">{{ fmtTime(row.createdAt) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">{{ statusMap[row.status] || row.status }}</template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="createdAt" label="创建时间" width="170" />
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
+            <el-button link type="primary" @click="showDetail(row)">明细</el-button>
             <el-button v-if="row.status === 'draft'" link type="primary" @click="post(row)">过账</el-button>
-            <el-button v-if="row.status === 'draft'" link type="danger" @click="cancel(row)">取消</el-button>
+            <el-button v-if="row.status === 'draft'" link type="danger" @click="cancel(row)">作废</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -127,14 +213,17 @@ function whName(id: number) {
       />
     </el-card>
 
-    <el-dialog v-model="visible" title="新建其他入库" width="680px">
+    <el-dialog v-model="visible" title="新建其它入库单" width="780px">
       <el-form :model="form" label-width="90px">
         <el-form-item label="仓库" required>
-          <el-select v-model="form.warehouseId" style="width: 100%">
+          <el-select v-model="form.warehouseId" style="width: 100%" @change="form.locationId = null">
             <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="原因">
+        <el-form-item label="库位">
+          <LocationSelect v-model="form.locationId" :warehouse-id="form.warehouseId" />
+        </el-form-item>
+        <el-form-item label="入库类别">
           <el-select v-model="form.reason" style="width: 100%">
             <el-option label="期初" value="opening" />
             <el-option label="赠品" value="gift" />
@@ -144,15 +233,29 @@ function whName(id: number) {
         </el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark" /></el-form-item>
         <el-form-item label="明细">
-          <div class="items">
-            <div v-for="(item, idx) in form.items" :key="idx" class="item-row">
-              <el-input-number v-model="item.invSkuId" :min="1" placeholder="SKU ID" controls-position="right" />
-              <el-input-number v-model="item.qty" :min="0.0001" placeholder="数量" controls-position="right" />
-              <el-input-number v-model="item.cost" :min="0" :precision="2" placeholder="成本" controls-position="right" />
-              <el-button link type="danger" @click="removeItem(idx)">移除</el-button>
-            </div>
-            <el-button type="primary" link @click="addItem">+ 添加明细</el-button>
-          </div>
+          <el-table :data="form.items" border size="small" style="width: 100%">
+            <el-table-column label="库存SKU" min-width="220">
+              <template #default="{ row }">
+                <SkuSearchSelect v-model="row.invSkuId" />
+              </template>
+            </el-table-column>
+            <el-table-column label="数量" width="130">
+              <template #default="{ row }">
+                <el-input-number v-model="row.qty" :min="0.0001" :controls="false" style="width: 110px" />
+              </template>
+            </el-table-column>
+            <el-table-column label="成本" width="130">
+              <template #default="{ row }">
+                <el-input-number v-model="row.cost" :min="0" :precision="2" :controls="false" style="width: 110px" />
+              </template>
+            </el-table-column>
+            <el-table-column label="" width="70">
+              <template #default="{ $index }">
+                <el-button link type="danger" @click="removeItem($index)">移除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button type="primary" link style="margin-top: 8px" @click="addItem">+ 添加</el-button>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -160,12 +263,30 @@ function whName(id: number) {
         <el-button type="primary" @click="create">创建</el-button>
       </template>
     </el-dialog>
+
+    <el-drawer v-model="detailVisible" title="入库明细" size="520px">
+      <template v-if="detail">
+        <el-descriptions :column="1" border class="mb">
+          <el-descriptions-item label="入库单号">{{ detail.docNo }}</el-descriptions-item>
+          <el-descriptions-item label="入库仓库">{{ whName(detail.warehouseId) }}</el-descriptions-item>
+          <el-descriptions-item label="入库类别">{{ reasonMap[detail.reason] || detail.reason }}</el-descriptions-item>
+          <el-descriptions-item label="状态">{{ statusMap[detail.status] || detail.status }}</el-descriptions-item>
+          <el-descriptions-item label="备注">{{ detail.remark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <el-table :data="detail.items || []" border stripe size="small">
+          <el-table-column prop="skuCode" label="库存SKU" min-width="120" />
+          <el-table-column prop="pickName" label="配货名称" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="qty" label="数量" width="90" align="right" />
+          <el-table-column prop="cost" label="成本" width="90" align="right" />
+        </el-table>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
 <style scoped>
 .hdr { display: flex; justify-content: space-between; align-items: center; }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .pager { margin-top: 16px; justify-content: flex-end; }
-.items { width: 100%; display: flex; flex-direction: column; gap: 8px; }
-.item-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mb { margin-bottom: 16px; }
 </style>

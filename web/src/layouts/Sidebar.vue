@@ -95,12 +95,12 @@ watch(() => route.path, () => {})
       </el-sub-menu>
 
       <el-sub-menu index="io">
-        <template #title><el-icon><Box /></el-icon><span>其他出入库</span></template>
+        <template #title><el-icon><Box /></el-icon><span>其它出入库</span></template>
         <el-menu-item index="/other-inbounds" @click="navigate('/other-inbounds')">
-          <el-icon><Download /></el-icon><span>其他入库单</span>
+          <el-icon><Download /></el-icon><span>其它入库单</span>
         </el-menu-item>
         <el-menu-item index="/other-outbounds" @click="navigate('/other-outbounds')">
-          <el-icon><Upload /></el-icon><span>其他出库单</span>
+          <el-icon><Upload /></el-icon><span>其它出库单</span>
         </el-menu-item>
       </el-sub-menu>
 
