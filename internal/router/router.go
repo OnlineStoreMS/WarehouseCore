@@ -28,7 +28,8 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		r.Static("/uploads", uploadDir)
 	}
 
-	if _, err := storage.New(&cfg.Storage); err != nil {
+	store, err := storage.New(&cfg.Storage)
+	if err != nil {
 		panic(err)
 	}
 
@@ -38,6 +39,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	querySvc := service.NewQueryService(repos)
 	integSvc := service.NewIntegrationService(repos)
 	h := admin.NewHandlers(masterSvc, docSvc, querySvc, integSvc)
+	uploadH := admin.NewUploadHandler(store)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "warehousecore"})
@@ -48,6 +50,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	jwtMgr := jwtmgr.NewManager(cfg.Auth.JWTSecret)
 	adminGroup.Use(adminmw.AdminAuth(&cfg.Auth, jwtMgr))
 	admin.RegisterRoutes(adminGroup, h)
+	adminGroup.POST("/upload", uploadH.Upload)
 
 	return r
 }

@@ -8,6 +8,7 @@ const useGateway = !!gateway
 
 const proxy: Record<string, object> = {
   '/api': { target: apiTarget, changeOrigin: true },
+  '/uploads': { target: apiTarget, changeOrigin: true },
 }
 
 if (!useGateway) {

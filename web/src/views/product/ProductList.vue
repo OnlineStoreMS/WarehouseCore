@@ -187,6 +187,10 @@ function typeLabel(t?: string) {
   return ({ normal: '普通', combo: '组合品', assembly: '组装品' } as Record<string, string>)[t || ''] || t || '-'
 }
 
+function goodsKindLabel(k?: string) {
+  return ({ normal: '普通商品', packaging: '包材', accessory: '配件', gift: '赠品' } as Record<string, string>)[k || ''] || k || '普通商品'
+}
+
 function openCreateProduct(skuType = 'normal') {
   defaultSkuType.value = skuType
   editingProductId.value = null
@@ -276,7 +280,16 @@ async function removeSku(sku: any) {
                 <el-button size="small" type="primary" link @click="openEditProduct(row)">编辑多款式</el-button>
               </div>
               <el-table :data="row.skus || []" border size="small">
+                <el-table-column label="图片" width="70">
+                  <template #default="{ row: sku }">
+                    <el-image v-if="sku.pic" :src="sku.pic" style="width: 40px; height: 40px" fit="cover" />
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="skuCode" label="库存SKU" width="130" />
+                <el-table-column label="商品类型" width="100">
+                  <template #default="{ row: sku }">{{ goodsKindLabel(sku.goodsKind) }}</template>
+                </el-table-column>
                 <el-table-column prop="pickName" label="配货名称" min-width="120" />
                 <el-table-column prop="style1" label="款式1" width="90" />
                 <el-table-column prop="style2" label="款式2" width="90" />
@@ -290,7 +303,7 @@ async function removeSku(sku: any) {
                 <el-table-column prop="upc" label="UPC码" width="110" />
                 <el-table-column prop="asin" label="ASIN码" width="110" />
                 <el-table-column prop="supplierItemNo" label="供应商货号" width="120" />
-                <el-table-column prop="productType" label="类型" width="80">
+                <el-table-column prop="productType" label="结构" width="80">
                   <template #default="{ row: sku }">{{ typeLabel(sku.productType) }}</template>
                 </el-table-column>
                 <el-table-column prop="description" label="备注" min-width="100" show-overflow-tooltip />
@@ -302,6 +315,12 @@ async function removeSku(sku: any) {
                 </el-table-column>
               </el-table>
             </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="图片" width="70">
+          <template #default="{ row }">
+            <el-image v-if="row.pic" :src="row.pic" style="width: 40px; height: 40px" fit="cover" />
+            <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column label="商品类别" width="120">
@@ -342,9 +361,18 @@ async function removeSku(sku: any) {
 
       <!-- 库存SKU明细视图 -->
       <el-table v-else :data="skuList" row-key="id" border stripe>
+        <el-table-column label="图片" width="70">
+          <template #default="{ row }">
+            <el-image v-if="row.pic" :src="row.pic" style="width: 40px; height: 40px" fit="cover" />
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="parentSku" label="父SKU" width="130" />
         <el-table-column prop="productName" label="商品名称" min-width="140" show-overflow-tooltip />
         <el-table-column prop="skuCode" label="库存SKU" width="130" />
+        <el-table-column label="商品类型" width="100">
+          <template #default="{ row }">{{ goodsKindLabel(row.goodsKind) }}</template>
+        </el-table-column>
         <el-table-column prop="pickName" label="配货名称" min-width="120" />
         <el-table-column prop="style1" label="款式1" width="90" />
         <el-table-column prop="style2" label="款式2" width="90" />

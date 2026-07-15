@@ -371,6 +371,48 @@ func (s *MasterService) applyProductFields(item *model.InvProduct, in *dto.InvPr
 			item.DevelopedAt = &t
 		}
 	}
+
+	item.Features = in.Features
+	item.AliasCn = in.AliasCn
+	item.AliasEn = in.AliasEn
+	item.DeclareWeightG = in.DeclareWeightG
+	item.DeclaredValue = in.DeclaredValue
+	item.OriginCountryCode = in.OriginCountryCode
+	item.HSCode = in.HSCode
+	item.ExportDeclaredValue = in.ExportDeclaredValue
+
+	item.PurchaseChannel = in.PurchaseChannel
+	item.Purchaser = in.Purchaser
+	item.MinPurchasePrice = in.MinPurchasePrice
+	item.StockMinAmount = in.StockMinAmount
+
+	item.PackFee = in.PackFee
+	item.PackageCount = in.PackageCount
+	item.OutLong = in.OutLong
+	item.OutWide = in.OutWide
+	item.OutHigh = in.OutHigh
+	item.OutGrossWeight = in.OutGrossWeight
+	item.OutNetWeight = in.OutNetWeight
+	item.InLong = in.InLong
+	item.InWide = in.InWide
+	item.InHigh = in.InHigh
+	item.InGrossWeight = in.InGrossWeight
+	item.InNetWeight = in.InNetWeight
+	item.PackMsg = in.PackMsg
+
+	item.ShopTitle = in.ShopTitle
+	item.Brand = in.Brand
+	item.SpecClass = in.SpecClass
+	item.Model = in.Model
+	item.Material = in.Material
+	item.Style = in.Style
+	item.Season = in.Season
+	item.Unit = in.Unit
+	item.RetailPrice = in.RetailPrice
+	item.BatchPrice = in.BatchPrice
+	item.MaxSalePrice = in.MaxSalePrice
+	item.MinSalePrice = in.MinSalePrice
+	item.MarketPrice = in.MarketPrice
 }
 
 func skuFromItem(tenantID, parentID uint64, productType string, in *dto.ProductSkuItemDTO) *model.InvSku {
@@ -393,6 +435,10 @@ func applySkuFields(item *model.InvSku, productType string, in *dto.ProductSkuIt
 	item.ProductType = productType
 	if item.ProductType == "" {
 		item.ProductType = model.ProductTypeNormal
+	}
+	item.GoodsKind = in.GoodsKind
+	if item.GoodsKind == "" {
+		item.GoodsKind = model.GoodsKindNormal
 	}
 	item.PickName = in.PickName
 	item.Style1 = in.Style1
@@ -479,6 +525,10 @@ func (s *MasterService) CreateSku(in *dto.InvSkuDTO) (*model.InvSku, error) {
 	if pt == "" {
 		pt = model.ProductTypeNormal
 	}
+	gk := in.GoodsKind
+	if gk == "" {
+		gk = model.GoodsKindNormal
+	}
 	st := in.Status
 	if st == "" {
 		st = "active"
@@ -490,6 +540,7 @@ func (s *MasterService) CreateSku(in *dto.InvSkuDTO) (*model.InvSku, error) {
 		Pic:               in.Pic,
 		Status:            st,
 		ProductType:       pt,
+		GoodsKind:         gk,
 		PickName:          in.PickName,
 		Style1:            in.Style1,
 		Style2:            in.Style2,
@@ -525,6 +576,9 @@ func (s *MasterService) UpdateSku(id uint64, in *dto.InvSkuDTO) (*model.InvSku, 
 	}
 	if in.ProductType != "" {
 		item.ProductType = in.ProductType
+	}
+	if in.GoodsKind != "" {
+		item.GoodsKind = in.GoodsKind
 	}
 	item.PickName = in.PickName
 	item.Style1 = in.Style1

@@ -25,12 +25,54 @@ type InvProductDTO struct {
 	AlbumPics          string  `json:"albumPics"`
 	Status             int8    `json:"status"`
 	PimSpuID           *uint64 `json:"pimSpuId"`
+
+	Features            string  `json:"features"`
+	AliasCn             string  `json:"aliasCn"`
+	AliasEn             string  `json:"aliasEn"`
+	DeclareWeightG      float64 `json:"declareWeightG"`
+	DeclaredValue       float64 `json:"declaredValue"`
+	OriginCountryCode   string  `json:"originCountryCode"`
+	HSCode              string  `json:"hsCode"`
+	ExportDeclaredValue float64 `json:"exportDeclaredValue"`
+
+	PurchaseChannel  string  `json:"purchaseChannel"`
+	Purchaser        string  `json:"purchaser"`
+	MinPurchasePrice float64 `json:"minPurchasePrice"`
+	StockMinAmount   float64 `json:"stockMinAmount"`
+
+	PackFee        float64 `json:"packFee"`
+	PackageCount   float64 `json:"packageCount"`
+	OutLong        float64 `json:"outLong"`
+	OutWide        float64 `json:"outWide"`
+	OutHigh        float64 `json:"outHigh"`
+	OutGrossWeight float64 `json:"outGrossWeight"`
+	OutNetWeight   float64 `json:"outNetWeight"`
+	InLong         float64 `json:"inLong"`
+	InWide         float64 `json:"inWide"`
+	InHigh         float64 `json:"inHigh"`
+	InGrossWeight  float64 `json:"inGrossWeight"`
+	InNetWeight    float64 `json:"inNetWeight"`
+	PackMsg        string  `json:"packMsg"`
+
+	ShopTitle    string  `json:"shopTitle"`
+	Brand        string  `json:"brand"`
+	SpecClass    string  `json:"specClass"`
+	Model        string  `json:"model"`
+	Material     string  `json:"material"`
+	Style        string  `json:"style"`
+	Season       string  `json:"season"`
+	Unit         string  `json:"unit"`
+	RetailPrice  float64 `json:"retailPrice"`
+	BatchPrice   float64 `json:"batchPrice"`
+	MaxSalePrice float64 `json:"maxSalePrice"`
+	MinSalePrice float64 `json:"minSalePrice"`
+	MarketPrice  float64 `json:"marketPrice"`
 }
 
 // ProductWithSkusDTO 对齐普源「新增普通商品」：一次提交父SKU + 库存SKU明细
 type ProductWithSkusDTO struct {
 	InvProductDTO
-	DefaultProductType string            `json:"defaultProductType"` // normal/combo/assembly
+	DefaultProductType string              `json:"defaultProductType"` // normal/combo/assembly
 	Skus               []ProductSkuItemDTO `json:"skus" binding:"required,min=1"`
 }
 
@@ -40,6 +82,7 @@ type ProductSkuItemDTO struct {
 	Pic               string  `json:"pic"`
 	Status            string  `json:"status"`
 	ProductType       string  `json:"productType"`
+	GoodsKind         string  `json:"goodsKind"`
 	PickName          string  `json:"pickName"`
 	Style1            string  `json:"style1"`
 	Style2            string  `json:"style2"`
@@ -88,6 +131,7 @@ type InvSkuDTO struct {
 	Pic               string  `json:"pic"`
 	Status            string  `json:"status"`
 	ProductType       string  `json:"productType"`
+	GoodsKind         string  `json:"goodsKind"`
 	PickName          string  `json:"pickName"`
 	Style1            string  `json:"style1"`
 	Style2            string  `json:"style2"`
@@ -112,6 +156,7 @@ type SkuListRow struct {
 	Pic               string    `json:"pic"`
 	Status            string    `json:"status"`
 	ProductType       string    `json:"productType"`
+	GoodsKind         string    `json:"goodsKind"`
 	PickName          string    `json:"pickName"`
 	Style1            string    `json:"style1"`
 	Style2            string    `json:"style2"`

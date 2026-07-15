@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
+import ImageField from '../../components/ImageField.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -29,6 +30,13 @@ const activeTab = ref('base')
 const form = ref<any>({})
 const skus = ref<any[]>([])
 
+const goodsKindOptions = [
+  { label: '普通商品', value: 'normal' },
+  { label: '包材', value: 'packaging' },
+  { label: '配件', value: 'accessory' },
+  { label: '赠品', value: 'gift' },
+]
+
 const title = computed(() => {
   if (form.value.id) return '编辑商品'
   const t = props.defaultProductType || 'normal'
@@ -46,6 +54,7 @@ function emptySku(productType = 'normal') {
     style2: '',
     style3: '',
     status: 'active',
+    goodsKind: 'normal',
     lastPurchasePrice: 0,
     minPurchasePrice: 0,
     retailPrice: 0,
@@ -56,6 +65,49 @@ function emptySku(productType = 'normal') {
     description: '',
     pic: '',
     productType,
+  }
+}
+
+function blankProductExtras() {
+  return {
+    features: '',
+    aliasCn: '',
+    aliasEn: '',
+    declareWeightG: 0,
+    declaredValue: 0,
+    originCountryCode: '',
+    hsCode: '',
+    exportDeclaredValue: 0,
+    purchaseChannel: '',
+    purchaser: '',
+    minPurchasePrice: 0,
+    stockMinAmount: 0,
+    packFee: 0,
+    packageCount: 0,
+    outLong: 0,
+    outWide: 0,
+    outHigh: 0,
+    outGrossWeight: 0,
+    outNetWeight: 0,
+    inLong: 0,
+    inWide: 0,
+    inHigh: 0,
+    inGrossWeight: 0,
+    inNetWeight: 0,
+    packMsg: '',
+    shopTitle: '',
+    brand: '',
+    specClass: '',
+    model: '',
+    material: '',
+    style: '',
+    season: '',
+    unit: '',
+    retailPrice: 0,
+    batchPrice: 0,
+    maxSalePrice: 0,
+    minSalePrice: 0,
+    marketPrice: 0,
   }
 }
 
@@ -73,7 +125,9 @@ function resetCreate() {
     developedAt: today,
     defaultWarehouseId: props.warehouses.find((w) => w.isDefault)?.id || undefined,
     pic: '',
+    albumPics: '',
     defaultProductType: pt,
+    ...blankProductExtras(),
   }
   skus.value = [emptySku(pt)]
   activeTab.value = 'base'
@@ -82,11 +136,16 @@ function resetCreate() {
 async function loadEdit(id: number) {
   const detail = await api.getProduct(id)
   form.value = {
+    ...blankProductExtras(),
     ...detail,
     developedAt: detail.developedAt ? String(detail.developedAt).slice(0, 10) : '',
     defaultProductType: detail.skus?.[0]?.productType || 'normal',
   }
-  skus.value = (detail.skus || []).map((s: any) => ({ ...s }))
+  skus.value = (detail.skus || []).map((s: any) => ({
+    ...emptySku(s.productType || 'normal'),
+    ...s,
+    goodsKind: s.goodsKind || 'normal',
+  }))
   if (!skus.value.length) skus.value = [emptySku(form.value.defaultProductType)]
   activeTab.value = 'base'
 }
@@ -96,11 +155,8 @@ watch(
   async (open) => {
     if (!open) return
     try {
-      if (props.productId) {
-        await loadEdit(props.productId)
-      } else {
-        resetCreate()
-      }
+      if (props.productId) await loadEdit(props.productId)
+      else resetCreate()
     } catch (e) {
       ElMessage.error((e as Error).message || '加载失败')
       visible.value = false
@@ -125,6 +181,12 @@ function fillSkuFromParent() {
   const first = skus.value[0]
   if (first && !first.skuCode) first.skuCode = form.value.parentSku
   if (first && !first.pickName) first.pickName = form.value.name || ''
+}
+
+function onPackSpecChange(id?: number) {
+  const p = props.packSpecs.find((x) => x.id === id)
+  if (!p) return
+  if (!form.value.packFee) form.value.packFee = p.cost || 0
 }
 
 async function save() {
@@ -155,6 +217,7 @@ async function save() {
   }
 
   const body = {
+    ...form.value,
     parentSku: form.value.parentSku.trim(),
     name: form.value.name.trim(),
     categoryId: form.value.categoryId || 0,
@@ -162,9 +225,6 @@ async function save() {
     developedAt: form.value.developedAt || '',
     defaultWarehouseId: form.value.defaultWarehouseId || 0,
     scoreFactor: form.value.scoreFactor ?? 1,
-    remark: form.value.remark || '',
-    pic: form.value.pic || '',
-    albumPics: form.value.albumPics || '',
     status: form.value.status ?? 1,
     defaultProductType: form.value.defaultProductType || 'normal',
     skus: validSkus.map((s) => ({
@@ -176,6 +236,7 @@ async function save() {
       style3: s.style3 || '',
       status: s.status || 'active',
       productType: s.productType || form.value.defaultProductType || 'normal',
+      goodsKind: s.goodsKind || 'normal',
       lastPurchasePrice: Number(s.lastPurchasePrice) || 0,
       minPurchasePrice: Number(s.minPurchasePrice) || 0,
       retailPrice: Number(s.retailPrice) || 0,
@@ -190,11 +251,8 @@ async function save() {
 
   saving.value = true
   try {
-    if (form.value.id) {
-      await api.updateProductWithSkus(form.value.id, body)
-    } else {
-      await api.createProductWithSkus(body)
-    }
+    if (form.value.id) await api.updateProductWithSkus(form.value.id, body)
+    else await api.createProductWithSkus(body)
     ElMessage.success('已保存')
     visible.value = false
     emit('saved')
@@ -210,72 +268,81 @@ async function save() {
   <el-dialog
     v-model="visible"
     :title="title"
-    width="1100px"
-    top="4vh"
+    width="1180px"
+    top="3vh"
     destroy-on-close
-    class="product-form-dlg"
     :close-on-click-modal="false"
   >
     <el-tabs v-model="activeTab">
+      <!-- 基本信息 -->
       <el-tab-pane label="基本信息" name="base">
         <div class="section-title">基础信息</div>
-        <el-form :model="form" label-width="120px" class="base-form">
-          <el-row :gutter="16">
-            <el-col :span="8">
-              <el-form-item label="父SKU/主SKU" required>
-                <el-input v-model="form.parentSku" :disabled="!!form.id" @blur="fillSkuFromParent" />
+        <el-form :model="form" label-width="120px">
+          <el-row :gutter="12">
+            <el-col :span="4">
+              <el-form-item label="商品主图" label-width="80px">
+                <ImageField v-model="form.pic" tip="主图" subdir="products" />
               </el-form-item>
             </el-col>
-            <el-col :span="8">
-              <el-form-item label="商品类别">
-                <el-select v-model="form.categoryId" clearable filterable style="width: 100%">
-                  <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="开发日期">
-                <el-date-picker v-model="form.developedAt" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="默认发货仓库">
-                <el-select v-model="form.defaultWarehouseId" clearable filterable style="width: 100%">
-                  <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="评分系数">
-                <el-input-number v-model="form.scoreFactor" :min="0" :step="0.1" style="width: 100%" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="状态">
-                <el-select v-model="form.status" style="width: 100%">
-                  <el-option :value="1" label="启用" />
-                  <el-option :value="0" label="停用" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="16">
-              <el-form-item label="商品名称" required>
-                <el-input v-model="form.name" @blur="fillSkuFromParent" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="产品类型">
-                <el-select v-model="form.defaultProductType" style="width: 100%">
-                  <el-option label="普通" value="normal" />
-                  <el-option label="组合品" value="combo" />
-                  <el-option label="组装品" value="assembly" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="24">
-              <el-form-item label="备注">
-                <el-input v-model="form.remark" type="textarea" :rows="2" />
-              </el-form-item>
+            <el-col :span="20">
+              <el-row :gutter="12">
+                <el-col :span="8">
+                  <el-form-item label="父SKU/主SKU" required>
+                    <el-input v-model="form.parentSku" :disabled="!!form.id" @blur="fillSkuFromParent" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="商品类别">
+                    <el-select v-model="form.categoryId" clearable filterable style="width: 100%">
+                      <el-option v-for="c in categories" :key="c.id" :label="c.name" :value="c.id" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="开发日期">
+                    <el-date-picker v-model="form.developedAt" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="默认发货仓库">
+                    <el-select v-model="form.defaultWarehouseId" clearable filterable style="width: 100%">
+                      <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="分值系数">
+                    <el-input-number v-model="form.scoreFactor" :min="0" :step="0.1" style="width: 100%" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="状态">
+                    <el-select v-model="form.status" style="width: 100%">
+                      <el-option :value="1" label="启用" />
+                      <el-option :value="0" label="停用" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="16">
+                  <el-form-item label="商品名称" required>
+                    <el-input v-model="form.name" @blur="fillSkuFromParent" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="结构类型">
+                    <el-select v-model="form.defaultProductType" style="width: 100%">
+                      <el-option label="普通" value="normal" />
+                      <el-option label="组合品" value="combo" />
+                      <el-option label="组装品" value="assembly" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item label="备注">
+                    <el-input v-model="form.remark" type="textarea" :rows="2" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
             </el-col>
           </el-row>
         </el-form>
@@ -285,24 +352,34 @@ async function save() {
           <el-button type="primary" link :icon="Plus" @click="addSkuRow">添加</el-button>
         </div>
         <el-table :data="skus" border size="small" class="sku-grid">
-          <el-table-column label="库存SKU" min-width="130" fixed>
+          <el-table-column label="图片" width="88" fixed>
             <template #default="{ row }">
-              <el-input v-model="row.skuCode" size="small" />
+              <ImageField v-model="row.pic" tip="SKU图" subdir="skus" />
             </template>
           </el-table-column>
-          <el-table-column label="配货名称" min-width="120">
+          <el-table-column label="库存SKU" min-width="120" fixed>
+            <template #default="{ row }"><el-input v-model="row.skuCode" size="small" /></template>
+          </el-table-column>
+          <el-table-column label="商品类型" width="110">
+            <template #default="{ row }">
+              <el-select v-model="row.goodsKind" size="small" style="width: 100%">
+                <el-option v-for="o in goodsKindOptions" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column label="配货名称" min-width="110">
             <template #default="{ row }"><el-input v-model="row.pickName" size="small" /></template>
           </el-table-column>
-          <el-table-column label="款式1" width="90">
+          <el-table-column label="款式1" width="80">
             <template #default="{ row }"><el-input v-model="row.style1" size="small" /></template>
           </el-table-column>
-          <el-table-column label="款式2" width="90">
+          <el-table-column label="款式2" width="80">
             <template #default="{ row }"><el-input v-model="row.style2" size="small" /></template>
           </el-table-column>
-          <el-table-column label="款式3" width="90">
+          <el-table-column label="款式3" width="80">
             <template #default="{ row }"><el-input v-model="row.style3" size="small" /></template>
           </el-table-column>
-          <el-table-column label="商品状态" width="100">
+          <el-table-column label="状态" width="90">
             <template #default="{ row }">
               <el-select v-model="row.status" size="small" style="width: 100%">
                 <el-option label="在售" value="active" />
@@ -311,34 +388,34 @@ async function save() {
               </el-select>
             </template>
           </el-table-column>
-          <el-table-column label="上次采购价" width="110">
+          <el-table-column label="上次采购价" width="100">
             <template #default="{ row }">
               <el-input-number v-model="row.lastPurchasePrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
             </template>
           </el-table-column>
-          <el-table-column label="零售价" width="100">
+          <el-table-column label="零售价" width="90">
             <template #default="{ row }">
               <el-input-number v-model="row.retailPrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
             </template>
           </el-table-column>
-          <el-table-column label="重量(g)" width="90">
+          <el-table-column label="重量(g)" width="80">
             <template #default="{ row }">
               <el-input-number v-model="row.weightG" :min="0" :controls="false" size="small" style="width: 100%" />
             </template>
           </el-table-column>
-          <el-table-column label="UPC码" width="110">
+          <el-table-column label="UPC" width="100">
             <template #default="{ row }"><el-input v-model="row.upc" size="small" /></template>
           </el-table-column>
-          <el-table-column label="ASIN码" width="110">
+          <el-table-column label="ASIN" width="100">
             <template #default="{ row }"><el-input v-model="row.asin" size="small" /></template>
           </el-table-column>
-          <el-table-column label="供应商货号" width="120">
+          <el-table-column label="供应商货号" width="110">
             <template #default="{ row }"><el-input v-model="row.supplierItemNo" size="small" /></template>
           </el-table-column>
-          <el-table-column label="备注" min-width="100">
+          <el-table-column label="备注" min-width="90">
             <template #default="{ row }"><el-input v-model="row.description" size="small" /></template>
           </el-table-column>
-          <el-table-column label="操作" width="70" fixed="right">
+          <el-table-column label="" width="50" fixed="right">
             <template #default="{ $index }">
               <el-button link type="danger" :icon="Delete" @click="removeSkuRow($index)" />
             </template>
@@ -346,67 +423,172 @@ async function save() {
         </el-table>
       </el-tab-pane>
 
-      <el-tab-pane label="采购信息" name="purchase">
-        <el-alert
-          type="info"
-          :closable="false"
-          show-icon
-          title="采购价、最低采购价按库存SKU维护，请在「基本信息 → 库存SKU明细」中填写。"
-          style="margin-bottom: 12px"
-        />
+      <!-- 物流及报关 -->
+      <el-tab-pane label="物流及报关信息" name="logistics">
+        <el-form :model="form" label-width="120px" class="tab-form">
+          <el-form-item label="商品特性">
+            <el-input v-model="form.features" placeholder="按空格分隔多个特性" />
+          </el-form-item>
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="英文申报名"><el-input v-model="form.aliasEn" /></el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="中文申报名"><el-input v-model="form.aliasCn" /></el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="申报重量(g)">
+                <el-input-number v-model="form.declareWeightG" :min="0" :precision="1" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="申报价值(USD)">
+                <el-input-number v-model="form.declaredValue" :min="0" :precision="4" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="出口国申报价">
+                <el-input-number v-model="form.exportDeclaredValue" :min="0" :precision="4" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="原产国"><el-input v-model="form.originCountryCode" placeholder="如 CN / JP" /></el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="海关编码"><el-input v-model="form.hsCode" /></el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </el-tab-pane>
+
+      <!-- 采购及供应商 -->
+      <el-tab-pane label="采购及供应商信息" name="purchase">
+        <div class="section-title">采购信息</div>
+        <el-form :model="form" label-width="130px" class="tab-form">
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="采购渠道"><el-input v-model="form.purchaseChannel" /></el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="采购员"><el-input v-model="form.purchaser" /></el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="最低采购价(CNY)">
+                <el-input-number v-model="form.minPurchasePrice" :min="0" :precision="4" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="采购最小订货量">
+                <el-input-number v-model="form.stockMinAmount" :min="0" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+        <div class="section-title">多供应商信息（按库存SKU）</div>
         <el-table :data="skus" border size="small">
           <el-table-column prop="skuCode" label="库存SKU" width="140" />
-          <el-table-column label="上次采购价 / 成本" width="150">
+          <el-table-column label="供应商货号" min-width="140">
+            <template #default="{ row }"><el-input v-model="row.supplierItemNo" size="small" /></template>
+          </el-table-column>
+          <el-table-column label="上次采购价/成本" width="140">
             <template #default="{ row }">
               <el-input-number v-model="row.lastPurchasePrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
             </template>
           </el-table-column>
-          <el-table-column label="最低采购价" width="140">
+          <el-table-column label="最低采购价" width="130">
             <template #default="{ row }">
               <el-input-number v-model="row.minPurchasePrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
             </template>
           </el-table-column>
-          <el-table-column label="供应商货号" min-width="140">
-            <template #default="{ row }"><el-input v-model="row.supplierItemNo" size="small" /></template>
-          </el-table-column>
         </el-table>
       </el-tab-pane>
 
+      <!-- 包装信息 -->
       <el-tab-pane label="包装信息" name="pack">
-        <el-form :model="form" label-width="120px" style="max-width: 520px">
-          <el-form-item label="外包装规格">
-            <el-select v-model="form.packSpecId" clearable filterable style="width: 100%">
-              <el-option v-for="p in packSpecs" :key="p.id" :label="`${p.name}（成本 ${p.cost} / ${p.weightG}g）`" :value="p.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <div class="hint">包装规格主档在「商品管理 → 包装规格」维护；可绑定库存SKU与数量范围。</div>
-          </el-form-item>
+        <el-form :model="form" label-width="120px" class="tab-form">
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <el-form-item label="外包装规格">
+                <el-select v-model="form.packSpecId" clearable filterable style="width: 100%" @change="onPackSpecChange">
+                  <el-option v-for="p in packSpecs" :key="p.id" :label="p.name" :value="p.id" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="内包装成本">
+                <el-input-number v-model="form.packFee" :min="0" :precision="4" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="最小包装数">
+                <el-input-number v-model="form.packageCount" :min="0" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8"><el-form-item label="外箱长(cm)"><el-input-number v-model="form.outLong" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱宽(cm)"><el-input-number v-model="form.outWide" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱高(cm)"><el-input-number v-model="form.outHigh" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱毛重(kg)"><el-input-number v-model="form.outGrossWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="外箱净重(kg)"><el-input-number v-model="form.outNetWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8" />
+            <el-col :span="8"><el-form-item label="内盒长(cm)"><el-input-number v-model="form.inLong" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒宽(cm)"><el-input-number v-model="form.inWide" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒高(cm)"><el-input-number v-model="form.inHigh" :min="0" :precision="2" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒毛重(kg)"><el-input-number v-model="form.inGrossWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="内盒净重(kg)"><el-input-number v-model="form.inNetWeight" :min="0" :precision="3" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="24">
+              <el-form-item label="包装事项"><el-input v-model="form.packMsg" type="textarea" :rows="2" /></el-form-item>
+            </el-col>
+          </el-row>
         </el-form>
       </el-tab-pane>
 
+      <!-- 销售信息 -->
       <el-tab-pane label="销售信息" name="sale">
-        <el-form :model="form" label-width="120px" style="max-width: 640px; margin-bottom: 12px">
-          <el-form-item label="商品图片URL">
-            <el-input v-model="form.pic" placeholder="网络图片URL" />
-          </el-form-item>
+        <div class="section-title">销售基础信息</div>
+        <el-form :model="form" label-width="110px" class="tab-form">
+          <el-row :gutter="12">
+            <el-col :span="12"><el-form-item label="店铺名称"><el-input v-model="form.shopTitle" /></el-form-item></el-col>
+            <el-col :span="12"><el-form-item label="品牌"><el-input v-model="form.brand" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="规格"><el-input v-model="form.specClass" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="型号"><el-input v-model="form.model" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="材质"><el-input v-model="form.material" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="款式"><el-input v-model="form.style" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="季节"><el-input v-model="form.season" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="单位"><el-input v-model="form.unit" placeholder="如 PCS" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="零售价格"><el-input-number v-model="form.retailPrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="批发价格"><el-input-number v-model="form.batchPrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="最高售价"><el-input-number v-model="form.maxSalePrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="最低售价"><el-input-number v-model="form.minSalePrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
+            <el-col :span="8"><el-form-item label="市场参考价"><el-input-number v-model="form.marketPrice" :min="0" :precision="4" style="width: 100%" /></el-form-item></el-col>
+          </el-row>
         </el-form>
+        <div class="section-title">SKU 售价与图片</div>
         <el-table :data="skus" border size="small">
-          <el-table-column prop="skuCode" label="库存SKU" width="140" />
+          <el-table-column label="图片" width="88">
+            <template #default="{ row }"><ImageField v-model="row.pic" tip="SKU图" subdir="skus" /></template>
+          </el-table-column>
+          <el-table-column prop="skuCode" label="库存SKU" width="130" />
+          <el-table-column label="商品类型" width="110">
+            <template #default="{ row }">
+              <el-select v-model="row.goodsKind" size="small" style="width: 100%">
+                <el-option v-for="o in goodsKindOptions" :key="o.value" :label="o.label" :value="o.value" />
+              </el-select>
+            </template>
+          </el-table-column>
           <el-table-column label="配货名称" min-width="120">
             <template #default="{ row }"><el-input v-model="row.pickName" size="small" /></template>
           </el-table-column>
-          <el-table-column label="零售价" width="120">
+          <el-table-column label="零售价" width="110">
             <template #default="{ row }">
               <el-input-number v-model="row.retailPrice" :min="0" :precision="2" :controls="false" size="small" style="width: 100%" />
             </template>
           </el-table-column>
-          <el-table-column label="重量(g)" width="110">
+          <el-table-column label="重量(g)" width="100">
             <template #default="{ row }">
               <el-input-number v-model="row.weightG" :min="0" :controls="false" size="small" style="width: 100%" />
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="110">
+          <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-select v-model="row.status" size="small" style="width: 100%">
                 <el-option label="在售" value="active" />
@@ -437,9 +619,16 @@ async function save() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 8px;
 }
-.base-form { margin-bottom: 4px; }
-.sku-grid :deep(.el-input-number) { width: 100%; }
-.hint { color: #909399; font-size: 12px; line-height: 1.5; }
+.tab-form { max-width: 1000px; }
+.sku-grid :deep(.img-field) { width: 72px; }
+.sku-grid :deep(.uploader .el-upload),
+.sku-grid :deep(.preview),
+.sku-grid :deep(.placeholder) {
+  width: 64px;
+  height: 64px;
+}
+.sku-grid :deep(.actions),
+.sku-grid :deep(.el-input) { display: none; }
 </style>
