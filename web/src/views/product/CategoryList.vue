@@ -49,6 +49,10 @@ function openEdit(row: any) {
 }
 
 async function save() {
+  if (!String(form.value.name || '').trim()) {
+    ElMessage.warning('请填写商品类别名称')
+    return
+  }
   try {
     if (form.value.id) {
       await api.updateCategory(form.value.id, form.value)
@@ -132,7 +136,13 @@ function search() {
 
     <el-dialog v-model="visible" :title="form.id ? '编辑商品类别' : '新增商品类别'" width="520px" destroy-on-close>
       <el-form :model="form" label-width="110px">
-        <el-form-item label="编码" required><el-input v-model="form.code" /></el-form-item>
+        <el-form-item label="编码">
+          <el-input
+            v-model="form.code"
+            :placeholder="form.id ? '' : '留空自动生成，如 CAT0001'"
+            :disabled="!!form.id"
+          />
+        </el-form-item>
         <el-form-item label="商品类别" required><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="中文品名"><el-input v-model="form.aliasCn" /></el-form-item>
         <el-form-item label="英文品名"><el-input v-model="form.aliasEn" /></el-form-item>

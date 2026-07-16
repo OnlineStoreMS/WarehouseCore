@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,10 +48,40 @@ func (s *MasterService) ListCategories(keyword string, page, pageSize int) ([]mo
 	return list, total, err
 }
 
+func (s *MasterService) nextCategoryCode() (string, error) {
+	var codes []string
+	if err := s.db().Model(&model.InvCategory{}).Where("code LIKE ?", "CAT%").Pluck("code", &codes).Error; err != nil {
+		return "", err
+	}
+	max := 0
+	for _, c := range codes {
+		c = strings.TrimSpace(c)
+		if len(c) < 4 || !strings.EqualFold(c[:3], "CAT") {
+			continue
+		}
+		n, err := strconv.Atoi(c[3:])
+		if err != nil {
+			continue
+		}
+		if n > max {
+			max = n
+		}
+	}
+	return fmt.Sprintf("CAT%04d", max+1), nil
+}
+
 func (s *MasterService) CreateCategory(in *dto.InvCategoryDTO) (*model.InvCategory, error) {
+	code := strings.TrimSpace(in.Code)
+	if code == "" {
+		var err error
+		code, err = s.nextCategoryCode()
+		if err != nil {
+			return nil, err
+		}
+	}
 	item := &model.InvCategory{
 		TenantID: s.tenantID,
-		Code:     strings.TrimSpace(in.Code),
+		Code:     code,
 		Name:     strings.TrimSpace(in.Name),
 		AliasCn:  strings.TrimSpace(in.AliasCn),
 		AliasEn:  strings.TrimSpace(in.AliasEn),
@@ -60,6 +91,21 @@ func (s *MasterService) CreateCategory(in *dto.InvCategoryDTO) (*model.InvCatego
 	}
 	if err := s.repos.DB.Create(item).Error; err != nil {
 		if isUniqueViolation(err) {
+			// 并发下自动编码冲突时再取一次
+			if strings.TrimSpace(in.Code) == "" {
+				code2, err2 := s.nextCategoryCode()
+				if err2 != nil {
+					return nil, err2
+				}
+				item.Code = code2
+				if err3 := s.repos.DB.Create(item).Error; err3 != nil {
+					if isUniqueViolation(err3) {
+						return nil, ErrDuplicateCode
+					}
+					return nil, err3
+				}
+				return item, nil
+			}
 			return nil, ErrDuplicateCode
 		}
 		return nil, err

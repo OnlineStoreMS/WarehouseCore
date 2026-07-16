@@ -3,7 +3,7 @@ package dto
 import "time"
 
 type InvCategoryDTO struct {
-	Code     string `json:"code" binding:"required"`
+	Code     string `json:"code"` // 留空则创建时自动生成
 	Name     string `json:"name" binding:"required"`
 	AliasCn  string `json:"aliasCn"`
 	AliasEn  string `json:"aliasEn"`
