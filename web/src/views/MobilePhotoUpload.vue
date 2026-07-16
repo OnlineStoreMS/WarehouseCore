@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Camera, Upload } from '@element-plus/icons-vue'
+import { Camera, Picture } from '@element-plus/icons-vue'
 import { mobileGetPhotoSession, mobileUploadPhoto } from '../api/upload'
 
 const route = useRoute()
@@ -13,7 +13,8 @@ const uploading = ref(false)
 const status = ref<'ok' | 'expired' | 'done'>('ok')
 const preview = ref('')
 const doneUrl = ref('')
-const fileInput = ref<HTMLInputElement | null>(null)
+const cameraInput = ref<HTMLInputElement | null>(null)
+const albumInput = ref<HTMLInputElement | null>(null)
 
 onMounted(async () => {
   if (!token.value) {
@@ -37,8 +38,12 @@ onMounted(async () => {
   }
 })
 
-function pickFile() {
-  fileInput.value?.click()
+function openCamera() {
+  cameraInput.value?.click()
+}
+
+function openAlbum() {
+  albumInput.value?.click()
 }
 
 async function onFileChange(e: Event) {
@@ -46,14 +51,15 @@ async function onFileChange(e: Event) {
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
-  if (!file.type.startsWith('image/')) {
+  // 微信相册偶发 type 为空，按扩展名兜底
+  const okType = file.type.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|heic)$/i.test(file.name)
+  if (!okType) {
     ElMessage.error('请选择图片文件')
     return
   }
   uploading.value = true
   try {
-    const localUrl = URL.createObjectURL(file)
-    preview.value = localUrl
+    preview.value = URL.createObjectURL(file)
     const res = await mobileUploadPhoto(token.value, file)
     doneUrl.value = res.url
     status.value = 'done'
@@ -87,24 +93,30 @@ async function onFileChange(e: Event) {
         <span>尚未选择图片</span>
       </div>
 
-      <div class="actions" v-if="status !== 'done' || !doneUrl">
-        <el-button type="primary" size="large" :icon="Camera" :loading="uploading" @click="pickFile">
-          拍照 / 选图
+      <div class="actions">
+        <el-button type="primary" size="large" :icon="Camera" :loading="uploading" @click="openCamera">
+          拍照
+        </el-button>
+        <el-button size="large" :icon="Picture" :loading="uploading" @click="openAlbum">
+          从相册选择
         </el-button>
       </div>
-      <div class="ok" v-else>
-        <el-icon :size="28"><Upload /></el-icon>
-        <p>上传成功</p>
-        <p class="sub">请返回电脑端查看预览</p>
-        <el-button type="primary" plain :loading="uploading" @click="pickFile">重新上传</el-button>
-      </div>
+      <p v-if="status === 'done' && doneUrl" class="ok-tip">上传成功，请返回电脑端查看</p>
     </template>
 
+    <!-- 微信：带 capture 只会调相机；相册必须用不带 capture 的 input -->
     <input
-      ref="fileInput"
+      ref="cameraInput"
       type="file"
       accept="image/*"
       capture="environment"
+      class="hidden"
+      @change="onFileChange"
+    />
+    <input
+      ref="albumInput"
+      type="file"
+      accept="image/*"
       class="hidden"
       @change="onFileChange"
     />
@@ -163,28 +175,22 @@ async function onFileChange(e: Event) {
 }
 .actions {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  margin: 0 auto;
 }
 .actions .el-button {
   width: 100%;
-  max-width: 420px;
   height: 48px;
   font-size: 16px;
+  margin: 0;
 }
-.ok {
+.ok-tip {
+  margin: 16px auto 0;
   text-align: center;
   color: #67c23a;
-}
-.ok p {
-  margin: 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-.ok .sub {
-  color: #909399;
-  font-size: 13px;
-  font-weight: 400;
-  margin-bottom: 16px;
+  font-size: 14px;
 }
 .hidden {
   display: none;
