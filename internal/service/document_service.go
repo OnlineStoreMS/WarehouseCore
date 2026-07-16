@@ -584,7 +584,6 @@ func (s *DocumentService) SubmitCount(id uint64, in *dto.StocktakeCountDTO) (*mo
 	}
 	err = s.repos.DB.Transaction(func(tx *gorm.DB) error {
 		for _, it := range in.Items {
-			diff := it.CountQty
 			var row model.StocktakeItem
 			if e := tx.Where("tenant_id = ? AND order_id = ? AND id = ?", s.tenantID, id, it.ID).First(&row).Error; e != nil {
 				return mapNotFound(e)
@@ -592,12 +591,45 @@ func (s *DocumentService) SubmitCount(id uint64, in *dto.StocktakeCountDTO) (*mo
 			row.CountQty = it.CountQty
 			row.DiffQty = it.CountQty - row.BookQty
 			row.Remark = it.Remark
-			_ = diff
 			if e := tx.Save(&row).Error; e != nil {
 				return e
 			}
 		}
+		// 提交盘点数量后进入待过账（已审核/已盘点）
 		return tx.Model(&model.StocktakeOrder{}).Where("id = ?", id).Update("status", model.DocStatusReview).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.GetStocktake(id)
+}
+
+// SaveStocktakeCounts 仅保存实盘数量，保持未审核/盘点中（对齐普源「保存」）
+func (s *DocumentService) SaveStocktakeCounts(id uint64, in *dto.StocktakeCountDTO) (*model.StocktakeOrder, error) {
+	order, err := s.GetStocktake(id)
+	if err != nil {
+		return nil, err
+	}
+	if order.Status != model.DocStatusDraft && order.Status != model.DocStatusCounting {
+		return nil, ErrInvalidStatus
+	}
+	err = s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		for _, it := range in.Items {
+			var row model.StocktakeItem
+			if e := tx.Where("tenant_id = ? AND order_id = ? AND id = ?", s.tenantID, id, it.ID).First(&row).Error; e != nil {
+				return mapNotFound(e)
+			}
+			row.CountQty = it.CountQty
+			row.DiffQty = it.CountQty - row.BookQty
+			row.Remark = it.Remark
+			if e := tx.Save(&row).Error; e != nil {
+				return e
+			}
+		}
+		if order.Status == model.DocStatusDraft {
+			return tx.Model(&model.StocktakeOrder{}).Where("id = ?", id).Update("status", model.DocStatusCounting).Error
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err

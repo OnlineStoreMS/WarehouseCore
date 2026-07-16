@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
 import { useSessionStore } from '../../stores/session'
+import StocktakeFormDialog from '../../components/StocktakeFormDialog.vue'
 
-const router = useRouter()
 const sessionStore = useSessionStore()
 const loading = ref(false)
 const list = ref<any[]>([])
@@ -17,9 +16,8 @@ const warehouses = ref<any[]>([])
 const statusTab = ref('all')
 const warehouseId = ref<number | undefined>()
 const keyword = ref('')
-const visible = ref(false)
-const creating = ref(false)
-const form = ref<any>({ warehouseId: undefined, checkerName: '', remark: '', fillAllBalances: false })
+const formVisible = ref(false)
+const editingId = ref<number | null>(null)
 const detailVisible = ref(false)
 const detail = ref<any>(null)
 
@@ -82,38 +80,13 @@ function onTabChange() {
 }
 
 function openCreate() {
-  form.value = {
-    warehouseId: warehouses.value[0]?.id,
-    checkerName: sessionStore.session?.user.displayName || '',
-    remark: '',
-    fillAllBalances: false,
-  }
-  visible.value = true
+  editingId.value = null
+  formVisible.value = true
 }
 
-async function create() {
-  try {
-    if (!form.value.warehouseId) {
-      ElMessage.warning('请选择盘点仓库')
-      return
-    }
-    creating.value = true
-    const { data } = await api.createStocktake({
-      warehouseId: form.value.warehouseId,
-      checkerName: form.value.checkerName || '',
-      remark: form.value.remark || '',
-      fillAllBalances: !!form.value.fillAllBalances,
-    })
-    ElMessage.success('已创建，请添加盘点商品')
-    visible.value = false
-    const id = data?.data?.id
-    if (id) router.push(`/stocktakes/${id}`)
-    else await load()
-  } catch (e) {
-    ElMessage.error((e as Error).message || '创建失败')
-  } finally {
-    creating.value = false
-  }
+function openEdit(row: any) {
+  editingId.value = row.id
+  formVisible.value = true
 }
 
 async function showDetail(row: any) {
@@ -171,7 +144,7 @@ async function remove(row: any) {
       <el-table :data="list" border stripe>
         <el-table-column prop="docNo" label="盘点单号" width="160" fixed>
           <template #default="{ row }">
-            <el-link type="primary" @click="router.push(`/stocktakes/${row.id}`)">{{ row.docNo }}</el-link>
+            <el-link type="primary" @click="openEdit(row)">{{ row.docNo }}</el-link>
           </template>
         </el-table-column>
         <el-table-column label="盘点仓库" width="140" show-overflow-tooltip>
@@ -200,7 +173,7 @@ async function remove(row: any) {
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="showDetail(row)">明细</el-button>
-            <el-button link type="primary" @click="router.push(`/stocktakes/${row.id}`)">编辑</el-button>
+            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button v-if="row.status !== 'posted'" link type="danger" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -217,35 +190,12 @@ async function remove(row: any) {
       />
     </el-card>
 
-    <el-dialog v-model="visible" title="新增盘点单" width="560px" destroy-on-close>
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        class="mb"
-        title="流程：① 编辑盘点单（添加商品）→ ② 仓库审核（过账调整库存）→ ③ 完结"
-      />
-      <el-form :model="form" label-width="100px">
-        <el-form-item label="盘点仓库" required>
-          <el-select v-model="form.warehouseId" filterable style="width: 100%" placeholder="请选择盘点仓库">
-            <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="盘点人">
-          <el-input v-model="form.checkerName" placeholder="盘点人" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="盘点备注" />
-        </el-form-item>
-        <el-form-item label="带出结存">
-          <el-checkbox v-model="form.fillAllBalances">按仓库全部结存自动生成明细（可选）</el-checkbox>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" :loading="creating" @click="create">保存并编辑商品</el-button>
-      </template>
-    </el-dialog>
+    <StocktakeFormDialog
+      v-model="formVisible"
+      :stocktake-id="editingId"
+      :warehouses="warehouses"
+      @saved="load"
+    />
 
     <el-drawer v-model="detailVisible" title="盘点单商品明细" size="720px">
       <template v-if="detail">

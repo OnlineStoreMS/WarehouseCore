@@ -967,6 +967,25 @@ func (h *Handlers) SubmitStocktakeCount(c *gin.Context) {
 	response.OK(c, item)
 }
 
+func (h *Handlers) SaveStocktakeCounts(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in dto.StocktakeCountDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.doc(c).SaveStocktakeCounts(id, &in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
 func (h *Handlers) PostStocktake(c *gin.Context) {
 	id, err := httputil.ParseID(c)
 	if err != nil {

@@ -86,6 +86,7 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.DELETE("/stocktakes/:id/items/:itemId", h.DeleteStocktakeItem)
 	g.POST("/stocktakes/:id/start", h.StartStocktake)
 	g.POST("/stocktakes/:id/count", h.SubmitStocktakeCount)
+	g.POST("/stocktakes/:id/save-counts", h.SaveStocktakeCounts)
 	g.POST("/stocktakes/:id/post", h.PostStocktake)
 	g.POST("/stocktakes/:id/cancel", h.CancelStocktake)
 	g.DELETE("/stocktakes/:id", h.DeleteStocktake)

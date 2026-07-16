@@ -96,6 +96,7 @@ export const api = {
   deleteStocktakeItem: (id: number, itemId: number) => client.delete(`/stocktakes/${id}/items/${itemId}`),
   startStocktake: (id: number) => client.post(`/stocktakes/${id}/start`),
   countStocktake: (id: number, body: unknown) => client.post(`/stocktakes/${id}/count`, body),
+  saveStocktakeCounts: (id: number, body: unknown) => client.post(`/stocktakes/${id}/save-counts`, body),
   postStocktake: (id: number) => client.post(`/stocktakes/${id}/post`),
   cancelStocktake: (id: number) => client.post(`/stocktakes/${id}/cancel`),
   deleteStocktake: (id: number) => client.delete(`/stocktakes/${id}`),
