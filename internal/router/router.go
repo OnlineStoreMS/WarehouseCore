@@ -42,17 +42,28 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	scClient := supplycore.NewClient(cfg.Integrations.SupplyCoreAPIURL)
 	h := admin.NewHandlers(masterSvc, docSvc, querySvc, integSvc, scClient)
 	uploadH := admin.NewUploadHandler(store)
+	photoH := admin.NewPhotoUploadHandler(store)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "warehousecore"})
 	})
 
 	v1 := r.Group("/api/v1")
+
+	// 手机扫码上传实拍图（免登录，凭短时 token）
+	mobile := v1.Group("/mobile")
+	{
+		mobile.GET("/photo-upload/:token", photoH.MobileGet)
+		mobile.POST("/photo-upload/:token", photoH.MobileUpload)
+	}
+
 	adminGroup := v1.Group("/admin")
 	jwtMgr := jwtmgr.NewManager(cfg.Auth.JWTSecret)
 	adminGroup.Use(adminmw.AdminAuth(&cfg.Auth, jwtMgr))
 	admin.RegisterRoutes(adminGroup, h)
 	adminGroup.POST("/upload", uploadH.Upload)
+	adminGroup.POST("/photo-upload-sessions", photoH.CreateSession)
+	adminGroup.GET("/photo-upload-sessions/:token", photoH.GetSession)
 
 	return r
 }

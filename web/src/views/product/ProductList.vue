@@ -282,7 +282,14 @@ async function removeSku(sku: any) {
               <el-table :data="row.skus || []" border size="small">
                 <el-table-column label="图片" width="70">
                   <template #default="{ row: sku }">
-                    <el-image v-if="sku.pic" :src="sku.pic" style="width: 40px; height: 40px" fit="cover" />
+                    <el-image
+                      v-if="sku.pic"
+                      :src="sku.pic"
+                      style="width: 40px; height: 40px"
+                      fit="cover"
+                      :preview-src-list="[sku.pic]"
+                      preview-teleported
+                    />
                     <span v-else>-</span>
                   </template>
                 </el-table-column>
@@ -319,7 +326,14 @@ async function removeSku(sku: any) {
         </el-table-column>
         <el-table-column label="图片" width="70">
           <template #default="{ row }">
-            <el-image v-if="row.pic" :src="row.pic" style="width: 40px; height: 40px" fit="cover" />
+            <el-image
+              v-if="row.pic"
+              :src="row.pic"
+              style="width: 40px; height: 40px"
+              fit="cover"
+              :preview-src-list="[row.pic]"
+              preview-teleported
+            />
             <span v-else>-</span>
           </template>
         </el-table-column>
@@ -363,7 +377,14 @@ async function removeSku(sku: any) {
       <el-table v-else :data="skuList" row-key="id" border stripe>
         <el-table-column label="图片" width="70">
           <template #default="{ row }">
-            <el-image v-if="row.pic" :src="row.pic" style="width: 40px; height: 40px" fit="cover" />
+            <el-image
+              v-if="row.pic"
+              :src="row.pic"
+              style="width: 40px; height: 40px"
+              fit="cover"
+              :preview-src-list="[row.pic]"
+              preview-teleported
+            />
             <span v-else>-</span>
           </template>
         </el-table-column>
