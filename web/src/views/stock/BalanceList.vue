@@ -16,11 +16,29 @@ const categoryId = ref<number | undefined>()
 const keyword = ref('')
 const skuCode = ref('')
 const hideZero = ref(true)
+const selected = ref<any[]>([])
 
 const categoryMap = computed(() => {
   const m = new Map<number, string>()
   for (const c of categories.value) m.set(c.id, c.name)
   return m
+})
+
+const selectedStats = computed(() => {
+  let qty = 0
+  let available = 0
+  let amount = 0
+  for (const row of selected.value) {
+    qty += Number(row.onHand) || 0
+    available += Number(row.availableQty ?? row.onHand) || 0
+    amount += Number(row.stockAmount) || 0
+  }
+  return {
+    count: selected.value.length,
+    qty,
+    available,
+    amount,
+  }
 })
 
 function statusLabel(s?: string) {
@@ -30,6 +48,13 @@ function statusLabel(s?: string) {
 function fmtNum(v?: number, digits = 2) {
   if (v == null || Number.isNaN(v)) return '-'
   return Number(v).toFixed(digits)
+}
+
+function fmtSum(v: number, digits = 2) {
+  return Number(v).toLocaleString('zh-CN', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })
 }
 
 async function loadMeta() {
@@ -43,6 +68,7 @@ async function loadMeta() {
 
 async function load() {
   loading.value = true
+  selected.value = []
   try {
     const res = await api.stockBalances({
       page: page.value,
@@ -71,6 +97,10 @@ function search() {
   page.value = 1
   load()
 }
+
+function onSelectionChange(rows: any[]) {
+  selected.value = rows
+}
 </script>
 
 <template>
@@ -89,7 +119,16 @@ function search() {
         <el-checkbox v-model="hideZero" @change="search">隐藏库存为0</el-checkbox>
         <el-button type="primary" @click="search">查询</el-button>
       </div>
-      <el-table :data="list" border stripe style="width: 100%" table-layout="auto">
+      <el-table
+        :data="list"
+        border
+        stripe
+        style="width: 100%"
+        table-layout="auto"
+        row-key="id"
+        @selection-change="onSelectionChange"
+      >
+        <el-table-column type="selection" width="48" fixed />
         <el-table-column label="图片" width="64" align="center" fixed>
           <template #default="{ row }">
             <el-image v-if="row.pic" :src="row.pic" fit="cover" style="width: 40px; height: 40px" :preview-src-list="[row.pic]" preview-teleported />
@@ -136,22 +175,57 @@ function search() {
         <el-table-column prop="style2" label="款式2" width="90" show-overflow-tooltip />
         <el-table-column prop="style3" label="款式3" width="90" show-overflow-tooltip />
       </el-table>
-      <el-pagination
-        class="pager"
-        layout="total, sizes, prev, pager, next"
-        :total="total"
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :page-sizes="[20, 50, 100]"
-        @current-change="load"
-        @size-change="search"
-      />
+      <div class="footer-bar">
+        <div class="stats" :class="{ active: selectedStats.count > 0 }">
+          <span>已选 <b>{{ selectedStats.count }}</b> 条</span>
+          <span>库存数量 <b>{{ fmtSum(selectedStats.qty, 0) }}</b></span>
+          <span>可用数量 <b>{{ fmtSum(selectedStats.available, 0) }}</b></span>
+          <span>库存金额 <b>{{ fmtSum(selectedStats.amount) }}</b></span>
+        </div>
+        <el-pagination
+          class="pager"
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :page-sizes="[20, 50, 100]"
+          @current-change="load"
+          @size-change="search"
+        />
+      </div>
     </el-card>
   </div>
 </template>
 
 <style scoped>
 .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-.pager { margin-top: 16px; justify-content: flex-end; }
+.footer-bar {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: #909399;
+  padding: 6px 12px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+.stats.active {
+  color: #303133;
+  background: #ecf5ff;
+}
+.stats b {
+  font-weight: 600;
+  margin-left: 4px;
+  color: var(--el-color-primary);
+}
+.pager { margin-left: auto; }
 .muted { color: #bbb; }
 </style>
