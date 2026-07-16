@@ -877,6 +877,63 @@ func (h *Handlers) CreateStocktake(c *gin.Context) {
 	response.Created(c, item)
 }
 
+func (h *Handlers) UpdateStocktake(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in dto.StocktakeUpdateDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.doc(c).UpdateStocktake(id, &in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
+func (h *Handlers) AddStocktakeItems(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in dto.StocktakeAddItemsDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.doc(c).AddStocktakeItems(id, &in)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
+func (h *Handlers) DeleteStocktakeItem(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	itemID, err := strconv.ParseUint(c.Param("itemId"), 10, 64)
+	if err != nil || itemID == 0 {
+		response.Fail(c, http.StatusBadRequest, "invalid itemId")
+		return
+	}
+	item, err := h.doc(c).DeleteStocktakeItem(id, itemID)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, item)
+}
+
 func (h *Handlers) StartStocktake(c *gin.Context) {
 	id, err := httputil.ParseID(c)
 	if err != nil {

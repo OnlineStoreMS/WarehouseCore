@@ -342,7 +342,26 @@ type OtherOutboundDTO struct {
 type StocktakeCreateDTO struct {
 	WarehouseID uint64 `json:"warehouseId" binding:"required"`
 	LocationID  uint64 `json:"locationId"`
+	CheckerName string `json:"checkerName"` // 盘点人
 	Remark      string `json:"remark"`
+	// FillAllBalances=true 时按仓库结存自动带出明细（兼容旧行为）；默认 false，对齐普源手工添加商品
+	FillAllBalances bool `json:"fillAllBalances"`
+}
+
+type StocktakeUpdateDTO struct {
+	CheckerName string `json:"checkerName"`
+	Remark      string `json:"remark"`
+}
+
+type StocktakeAddItemsDTO struct {
+	Items []StocktakeAddItemDTO `json:"items" binding:"required,min=1"`
+}
+
+type StocktakeAddItemDTO struct {
+	InvSkuID   uint64   `json:"invSkuId" binding:"required"`
+	LocationID uint64   `json:"locationId"`
+	CountQty   *float64 `json:"countQty"` // nil=默认等于账存
+	Remark     string   `json:"remark"`
 }
 
 type StocktakeCountDTO struct {

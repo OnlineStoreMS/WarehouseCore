@@ -449,7 +449,8 @@ type StocktakeOrder struct {
 	TenantID      uint64          `gorm:"index;not null" json:"tenantId"`
 	DocNo         string          `gorm:"size:64;not null" json:"docNo"`
 	WarehouseID   uint64          `gorm:"index;not null" json:"warehouseId"`
-	LocationID    uint64          `gorm:"default:0" json:"locationId"` // 0=全仓
+	LocationID    uint64          `gorm:"default:0" json:"locationId"` // 0=全仓/不限
+	CheckerName   string          `gorm:"size:128" json:"checkerName"` // 盘点人（对齐普源）
 	Status        string          `gorm:"size:32;default:draft" json:"status"`
 	Remark        string          `gorm:"size:512" json:"remark"`
 	PostedAt      *time.Time      `json:"postedAt"`

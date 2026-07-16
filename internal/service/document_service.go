@@ -401,6 +401,14 @@ func (s *DocumentService) GetStocktake(id uint64) (*model.StocktakeOrder, error)
 		return nil, mapNotFound(err)
 	}
 	s.enrichStocktakeItems(item.Items)
+	item.WarehouseName = s.warehouseNameMap([]uint64{item.WarehouseID})[item.WarehouseID]
+	var book, count, diff float64
+	for _, it := range item.Items {
+		book += it.BookQty
+		count += it.CountQty
+		diff += it.DiffQty
+	}
+	item.TotalBookQty, item.TotalCountQty, item.TotalDiffQty = book, count, diff
 	return &item, nil
 }
 
@@ -410,6 +418,7 @@ func (s *DocumentService) CreateStocktake(in *dto.StocktakeCreateDTO, userID uin
 		DocNo:       GenDocNo("STK"),
 		WarehouseID: in.WarehouseID,
 		LocationID:  in.LocationID,
+		CheckerName: in.CheckerName,
 		Status:      model.DocStatusDraft,
 		Remark:      in.Remark,
 		CreatedBy:   userID,
@@ -417,6 +426,9 @@ func (s *DocumentService) CreateStocktake(in *dto.StocktakeCreateDTO, userID uin
 	err := s.repos.DB.Transaction(func(tx *gorm.DB) error {
 		if e := tx.Create(order).Error; e != nil {
 			return e
+		}
+		if !in.FillAllBalances {
+			return nil
 		}
 		bq := tx.Model(&model.InvBalance{}).Where("tenant_id = ? AND warehouse_id = ?", s.tenantID, in.WarehouseID)
 		if in.LocationID > 0 {
@@ -446,6 +458,106 @@ func (s *DocumentService) CreateStocktake(in *dto.StocktakeCreateDTO, userID uin
 		return nil, err
 	}
 	return s.GetStocktake(order.ID)
+}
+
+func (s *DocumentService) UpdateStocktake(id uint64, in *dto.StocktakeUpdateDTO) (*model.StocktakeOrder, error) {
+	order, err := s.GetStocktake(id)
+	if err != nil {
+		return nil, err
+	}
+	if order.Status != model.DocStatusDraft && order.Status != model.DocStatusCounting {
+		return nil, ErrInvalidStatus
+	}
+	updates := map[string]interface{}{
+		"checker_name": in.CheckerName,
+		"remark":       in.Remark,
+	}
+	if err := s.db().Model(&model.StocktakeOrder{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	return s.GetStocktake(id)
+}
+
+func (s *DocumentService) AddStocktakeItems(id uint64, in *dto.StocktakeAddItemsDTO) (*model.StocktakeOrder, error) {
+	order, err := s.GetStocktake(id)
+	if err != nil {
+		return nil, err
+	}
+	if order.Status != model.DocStatusDraft && order.Status != model.DocStatusCounting {
+		return nil, ErrInvalidStatus
+	}
+	engine := NewStockEngine(s.repos.DB, s.tenantID)
+	err = s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		for _, it := range in.Items {
+			if it.InvSkuID == 0 {
+				return ErrBadRequest
+			}
+			locID := it.LocationID
+			if locID == 0 {
+				id, e := engine.EnsureDefaultLocation(tx, order.WarehouseID)
+				if e != nil {
+					return e
+				}
+				locID = id
+			}
+			var exist int64
+			if e := tx.Model(&model.StocktakeItem{}).
+				Where("tenant_id = ? AND order_id = ? AND inv_sku_id = ? AND location_id = ?",
+					s.tenantID, id, it.InvSkuID, locID).Count(&exist).Error; e != nil {
+				return e
+			}
+			if exist > 0 {
+				continue // 已存在则跳过
+			}
+			bookQty := 0.0
+			var bal model.InvBalance
+			if e := tx.Where("tenant_id = ? AND warehouse_id = ? AND location_id = ? AND inv_sku_id = ?",
+				s.tenantID, order.WarehouseID, locID, it.InvSkuID).First(&bal).Error; e == nil {
+				bookQty = bal.OnHand
+			}
+			countQty := bookQty
+			if it.CountQty != nil {
+				countQty = *it.CountQty
+			}
+			row := model.StocktakeItem{
+				TenantID:   s.tenantID,
+				OrderID:    id,
+				LocationID: locID,
+				InvSkuID:   it.InvSkuID,
+				BookQty:    bookQty,
+				CountQty:   countQty,
+				DiffQty:    countQty - bookQty,
+				Remark:     it.Remark,
+			}
+			if e := tx.Create(&row).Error; e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.GetStocktake(id)
+}
+
+func (s *DocumentService) DeleteStocktakeItem(orderID, itemID uint64) (*model.StocktakeOrder, error) {
+	order, err := s.GetStocktake(orderID)
+	if err != nil {
+		return nil, err
+	}
+	if order.Status != model.DocStatusDraft && order.Status != model.DocStatusCounting {
+		return nil, ErrInvalidStatus
+	}
+	res := s.db().Where("tenant_id = ? AND order_id = ? AND id = ?", s.tenantID, orderID, itemID).
+		Delete(&model.StocktakeItem{})
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, ErrNotFound
+	}
+	return s.GetStocktake(orderID)
 }
 
 func (s *DocumentService) StartCounting(id uint64) (*model.StocktakeOrder, error) {
