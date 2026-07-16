@@ -116,9 +116,15 @@ function search() {
         <el-table-column label="盘点成本价" width="110" align="right">
           <template #default="{ row }">{{ fmtNum(row.unitCost) }}</template>
         </el-table-column>
-        <el-table-column prop="bookQty" label="账存数量" width="100" align="right" />
-        <el-table-column prop="countQty" label="实盘数量" width="100" align="right" />
-        <el-table-column prop="diffQty" label="差额数量" width="100" align="right" />
+        <el-table-column label="账存数量" width="100" align="right">
+          <template #default="{ row }">{{ fmtNum(row.bookQty, 0) }}</template>
+        </el-table-column>
+        <el-table-column label="实盘数量" width="100" align="right">
+          <template #default="{ row }">{{ fmtNum(row.countQty, 0) }}</template>
+        </el-table-column>
+        <el-table-column label="差额数量" width="100" align="right">
+          <template #default="{ row }">{{ fmtNum(row.diffQty, 0) }}</template>
+        </el-table-column>
         <el-table-column label="差额金额" width="110" align="right">
           <template #default="{ row }">{{ fmtNum(row.diffAmount) }}</template>
         </el-table-column>

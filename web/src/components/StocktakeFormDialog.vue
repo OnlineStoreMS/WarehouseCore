@@ -119,8 +119,8 @@ async function loadExisting(id: number) {
       pickName: it.pickName,
       locationId: it.locationId,
       locationCode: it.locationCode || '',
-      bookQty: Number(it.bookQty) || 0,
-      countQty: Number(it.countQty) || 0,
+      bookQty: Math.round(Number(it.bookQty) || 0),
+      countQty: Math.round(Number(it.countQty) || 0),
       unitCost: Number(it.unitCost) || 0,
       remark: it.remark || '',
       style1: it.style1,
@@ -206,8 +206,8 @@ async function onSkusPicked(skus: any[]) {
             pic: sku.pic,
             locationId: b.locationId,
             locationCode: b.locationCode || '',
-            bookQty: Number(b.onHand) || 0,
-            countQty: Number(b.onHand) || 0,
+            bookQty: Math.round(Number(b.onHand) || 0),
+            countQty: Math.round(Number(b.onHand) || 0),
             unitCost: Number(b.unitCost ?? b.lastCost ?? sku.lastPurchasePrice) || 0,
             remark: '',
             style1: sku.style1,
@@ -276,7 +276,7 @@ async function syncItems(id: number) {
       items: pending.map((i) => ({
         invSkuId: i.invSkuId,
         locationId: i.locationId || 0,
-        countQty: Number(i.countQty) || 0,
+        countQty: Math.round(Number(i.countQty) || 0),
         remark: i.remark || '',
       })),
     })
@@ -290,7 +290,7 @@ async function syncItems(id: number) {
     )
     return {
       id: si.id,
-      countQty: local ? Number(local.countQty) || 0 : Number(si.countQty) || 0,
+      countQty: local ? Math.round(Number(local.countQty) || 0) : Math.round(Number(si.countQty) || 0),
       remark: local?.remark ?? si.remark ?? '',
     }
   })
@@ -430,7 +430,8 @@ function close() {
                 v-if="canEdit"
                 v-model="row.countQty"
                 :min="0"
-                :precision="4"
+                :step="1"
+                :precision="0"
                 :controls="false"
                 style="width: 110px"
               />

@@ -210,12 +210,18 @@ async function remove(row: any) {
           <el-table-column prop="skuCode" label="库存SKU" width="120" show-overflow-tooltip />
           <el-table-column prop="pickName" label="配货名称" min-width="120" show-overflow-tooltip />
           <el-table-column prop="locationCode" label="库位" width="90" />
-          <el-table-column prop="bookQty" label="账存数量" width="90" align="right" />
+          <el-table-column label="账存数量" width="90" align="right">
+            <template #default="{ row }">{{ fmtNum(row.bookQty, 0) }}</template>
+          </el-table-column>
           <el-table-column label="账存金额" width="100" align="right">
             <template #default="{ row }">{{ fmtNum(row.bookAmount) }}</template>
           </el-table-column>
-          <el-table-column prop="countQty" label="实盘数量" width="90" align="right" />
-          <el-table-column prop="diffQty" label="差额数量" width="90" align="right" />
+          <el-table-column label="实盘数量" width="90" align="right">
+            <template #default="{ row }">{{ fmtNum(row.countQty, 0) }}</template>
+          </el-table-column>
+          <el-table-column label="差额数量" width="90" align="right">
+            <template #default="{ row }">{{ fmtNum(row.diffQty, 0) }}</template>
+          </el-table-column>
           <el-table-column label="差额金额" width="100" align="right">
             <template #default="{ row }">{{ fmtNum(row.diffAmount) }}</template>
           </el-table-column>
