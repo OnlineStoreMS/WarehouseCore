@@ -528,3 +528,36 @@ type SlowMovingRow struct {
 	IdleDays        int        `json:"idleDays"`
 	CreatedAt       *time.Time `json:"createdAt"` // 商品创建时间
 }
+
+// StocktakeDetailRow 盘点明细表行（跨盘点单的商品行查询）
+type StocktakeDetailRow struct {
+	ID            uint64     `json:"id" gorm:"column:id"`
+	TenantID      uint64     `json:"tenantId" gorm:"column:tenant_id"`
+	OrderID       uint64     `json:"orderId" gorm:"column:order_id"`
+	LocationID    uint64     `json:"locationId" gorm:"column:location_id"`
+	InvSkuID      uint64     `json:"invSkuId" gorm:"column:inv_sku_id"`
+	BookQty       float64    `json:"bookQty" gorm:"column:book_qty"`
+	CountQty      float64    `json:"countQty" gorm:"column:count_qty"`
+	DiffQty       float64    `json:"diffQty" gorm:"column:diff_qty"`
+	Remark        string     `json:"remark" gorm:"column:remark"`
+	DocNo         string     `json:"docNo" gorm:"column:doc_no"`
+	WarehouseID   uint64     `json:"warehouseId" gorm:"column:warehouse_id"`
+	WarehouseName string     `json:"warehouseName" gorm:"column:warehouse_name"`
+	Status        string     `json:"status" gorm:"column:status"`
+	OrderRemark   string     `json:"orderRemark" gorm:"column:order_remark"`
+	CreatedAt     *time.Time `json:"createdAt" gorm:"column:created_at"`
+	PostedAt      *time.Time `json:"postedAt" gorm:"column:posted_at"`
+	SkuCode       string     `json:"skuCode" gorm:"column:sku_code"`
+	PickName      string     `json:"pickName" gorm:"column:pick_name"`
+	LocationCode  string     `json:"locationCode" gorm:"column:location_code"`
+	UnitCost      float64    `json:"unitCost" gorm:"column:unit_cost"`
+	BookAmount    float64    `json:"bookAmount" gorm:"-"`
+	CountAmount   float64    `json:"countAmount" gorm:"-"`
+	DiffAmount    float64    `json:"diffAmount" gorm:"-"`
+	Style1        string     `json:"style1" gorm:"column:style1"`
+	Style2        string     `json:"style2" gorm:"column:style2"`
+	Style3        string     `json:"style3" gorm:"column:style3"`
+	SpecClass     string     `json:"specClass" gorm:"column:spec_class"`
+	Model         string     `json:"model" gorm:"column:model"`
+	Unit          string     `json:"unit" gorm:"column:unit"`
+}

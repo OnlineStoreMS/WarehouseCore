@@ -80,13 +80,14 @@ function search() {
           value-format="YYYY-MM-DD"
           start-placeholder="起始日期"
           end-placeholder="结束日期"
+          clearable
           style="width: 260px"
           @change="search"
         />
         <el-select v-model="warehouseId" clearable filterable placeholder="盘点仓库" style="width: 180px" @change="search">
           <el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
-        <el-select v-model="status" clearable placeholder="单据状态" style="width: 160px" @change="search">
+        <el-select v-model="status" clearable placeholder="单据状态（默认全部）" style="width: 180px" @change="search">
           <el-option label="未审核/盘点中" value="open" />
           <el-option label="已审核/已盘点" value="review" />
           <el-option label="已完结" value="posted" />
@@ -95,6 +96,13 @@ function search() {
         <el-input v-model="keyword" clearable placeholder="盘点单号/SKU" style="width: 200px" @keyup.enter="search" />
         <el-button type="primary" @click="search">查询</el-button>
       </div>
+      <el-alert
+        class="hint"
+        type="info"
+        :closable="false"
+        show-icon
+        title="本页按「盘点单商品行」汇总查询：在「仓库盘点单」中保存/审核后才会出现明细。筛选状态请与盘点单一致（已完结选「已完结」，不要选「未审核/盘点中」）。"
+      />
       <el-table :data="list" border stripe>
         <el-table-column prop="docNo" label="盘点单号" width="150" fixed show-overflow-tooltip />
         <el-table-column label="制单日期" width="170">
@@ -153,5 +161,6 @@ function search() {
 
 <style scoped>
 .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.hint { margin-bottom: 12px; }
 .pager { margin-top: 16px; justify-content: flex-end; }
 </style>

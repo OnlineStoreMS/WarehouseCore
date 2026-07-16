@@ -718,38 +718,34 @@ func (s *DocumentService) DeleteStocktake(id uint64) error {
 	})
 }
 
-func (s *DocumentService) ListStocktakeDetails(keyword, status string, warehouseID, stocktakeID uint64, from, to *time.Time, page, pageSize int) ([]model.StocktakeItem, int64, error) {
-	q := s.repos.DB.Table("stocktake_items AS i").
-		Select(`i.id, i.tenant_id, i.order_id, i.location_id, i.inv_sku_id, i.book_qty, i.count_qty, i.diff_qty, i.remark,
-			o.doc_no, o.warehouse_id, o.status, o.remark AS order_remark, o.created_at, o.posted_at,
-			w.name AS warehouse_name, s.sku_code, s.pick_name, s.style1, s.style2, s.style3,
-			s.last_purchase_price AS unit_cost, COALESCE(p.spec_class,'') AS spec_class,
-			COALESCE(p.model,'') AS model, COALESCE(p.unit,'') AS unit, l.code AS location_code`).
+func (s *DocumentService) ListStocktakeDetails(keyword, status string, warehouseID, stocktakeID uint64, from, to *time.Time, page, pageSize int) ([]dto.StocktakeDetailRow, int64, error) {
+	base := s.repos.DB.Table("stocktake_items AS i").
 		Joins("JOIN stocktake_orders o ON o.id = i.order_id").
 		Joins("JOIN warehouses w ON w.id = o.warehouse_id").
 		Joins("JOIN inv_skus s ON s.id = i.inv_sku_id").
-		Joins("JOIN inv_products p ON p.id = s.parent_id").
+		Joins("LEFT JOIN inv_products p ON p.id = s.parent_id").
 		Joins("LEFT JOIN warehouse_locations l ON l.id = i.location_id").
 		Where("i.tenant_id = ?", s.tenantID)
 	if keyword != "" {
 		like := "%" + keyword + "%"
-		q = q.Where("o.doc_no ILIKE ? OR s.sku_code ILIKE ? OR s.pick_name ILIKE ?", like, like, like)
+		base = base.Where("o.doc_no ILIKE ? OR s.sku_code ILIKE ? OR s.pick_name ILIKE ?", like, like, like)
 	}
 	if warehouseID > 0 {
-		q = q.Where("o.warehouse_id = ?", warehouseID)
+		base = base.Where("o.warehouse_id = ?", warehouseID)
 	}
 	if stocktakeID > 0 {
-		q = q.Where("i.order_id = ?", stocktakeID)
+		base = base.Where("i.order_id = ?", stocktakeID)
 	}
 	if from != nil {
-		q = q.Where("o.created_at >= ?", *from)
+		base = base.Where("o.created_at >= ?", *from)
 	}
 	if to != nil {
-		q = q.Where("o.created_at <= ?", *to)
+		base = base.Where("o.created_at <= ?", *to)
 	}
-	q = applyStocktakeStatusFilterCol(q, "o.status", status)
+	base = applyStocktakeStatusFilterCol(base, "o.status", status)
+
 	var total int64
-	if err := q.Count(&total).Error; err != nil {
+	if err := base.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	if page < 1 {
@@ -758,8 +754,18 @@ func (s *DocumentService) ListStocktakeDetails(keyword, status string, warehouse
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	var list []model.StocktakeItem
-	if err := q.Order("i.id desc").Offset((page - 1) * pageSize).Limit(pageSize).Scan(&list).Error; err != nil {
+
+	var list []dto.StocktakeDetailRow
+	err := base.Select(`i.id, i.tenant_id, i.order_id, i.location_id, i.inv_sku_id, i.book_qty, i.count_qty, i.diff_qty, i.remark,
+			o.doc_no, o.warehouse_id, o.status, o.remark AS order_remark, o.created_at, o.posted_at,
+			w.name AS warehouse_name, s.sku_code, s.pick_name, s.style1, s.style2, s.style3,
+			s.last_purchase_price AS unit_cost, COALESCE(p.spec_class,'') AS spec_class,
+			COALESCE(p.model,'') AS model, COALESCE(p.unit,'') AS unit, COALESCE(l.code,'') AS location_code`).
+		Order("i.id desc").
+		Offset((page - 1) * pageSize).
+		Limit(pageSize).
+		Scan(&list).Error
+	if err != nil {
 		return nil, 0, err
 	}
 	for i := range list {
