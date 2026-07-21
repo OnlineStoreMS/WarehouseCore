@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"warehousecore/internal/dto"
+	"warehousecore/internal/integrations/productcore"
 	"warehousecore/internal/integrations/supplycore"
 	"warehousecore/internal/pkg/authcontext"
 	"warehousecore/internal/pkg/httputil"
@@ -21,10 +22,18 @@ type Handlers struct {
 	Query  *service.QueryService
 	Integ  *service.IntegrationService
 	SC     *supplycore.Client
+	PC     *productcore.Client
 }
 
-func NewHandlers(master *service.MasterService, doc *service.DocumentService, query *service.QueryService, integ *service.IntegrationService, sc *supplycore.Client) *Handlers {
-	return &Handlers{Master: master, Doc: doc, Query: query, Integ: integ, SC: sc}
+func NewHandlers(
+	master *service.MasterService,
+	doc *service.DocumentService,
+	query *service.QueryService,
+	integ *service.IntegrationService,
+	sc *supplycore.Client,
+	pc *productcore.Client,
+) *Handlers {
+	return &Handlers{Master: master, Doc: doc, Query: query, Integ: integ, SC: sc, PC: pc}
 }
 
 func (h *Handlers) master(c *gin.Context) *service.MasterService {
@@ -631,7 +640,7 @@ func (h *Handlers) QueryBalances(c *gin.Context) {
 		WarehouseID: whID, LocationID: locID, InvSkuID: skuID, CategoryID: catID,
 		SkuCode: c.Query("skuCode"), Keyword: c.Query("keyword"),
 		HideZero: c.Query("hideZero") == "1" || c.Query("hideZero") == "true",
-		Page: page, PageSize: pageSize,
+		Page:     page, PageSize: pageSize,
 	})
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
@@ -1137,7 +1146,7 @@ func (h *Handlers) CancelTransfer(c *gin.Context) {
 
 func (h *Handlers) ListPimMappings(c *gin.Context) {
 	page, pageSize := httputil.ParsePage(c)
-	list, total, err := h.integ(c).ListPimMappings(page, pageSize)
+	list, total, err := h.integ(c).ListPimMappings(c.Query("keyword"), page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -1213,6 +1222,40 @@ func (h *Handlers) ListSuppliers(c *gin.Context) {
 		return
 	}
 	response.OK(c, response.PageResult(list, total, page, pageSize))
+}
+
+// ListPimProducts proxies ProductCore product list for 商品库映射.
+func (h *Handlers) ListPimProducts(c *gin.Context) {
+	page, pageSize := httputil.ParsePage(c)
+	if h.PC == nil {
+		response.Fail(c, http.StatusBadGateway, "productcore 未配置")
+		return
+	}
+	list, total, err := h.PC.ListProducts(c.Request.Context(), c.GetHeader("Authorization"), c.Query("keyword"), page, pageSize)
+	if err != nil {
+		response.Fail(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	response.OK(c, response.PageResult(list, total, page, pageSize))
+}
+
+// GetPimProductSkus proxies ProductCore product SKUs.
+func (h *Handlers) GetPimProductSkus(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	if h.PC == nil {
+		response.Fail(c, http.StatusBadGateway, "productcore 未配置")
+		return
+	}
+	item, err := h.PC.GetProductSkus(c.Request.Context(), c.GetHeader("Authorization"), id)
+	if err != nil {
+		response.Fail(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	response.OK(c, item)
 }
 
 // ── 商品费用 / 重量检测 / 利润试算 ──

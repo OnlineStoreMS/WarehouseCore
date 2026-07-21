@@ -114,6 +114,8 @@ export const api = {
   listPimMappings: (params?: Record<string, unknown>) => page<any>('/pim-mappings', params),
   upsertPimMapping: (body: unknown) => client.post('/pim-mappings', body),
   deletePimMapping: (id: number) => client.delete(`/pim-mappings/${id}`),
+  listPimProducts: (params?: Record<string, unknown>) => page<any>('/pim-products', params),
+  getPimProductSkus: (id: number) => client.get(`/pim-products/${id}/skus`).then((r) => r.data.data),
 
   // goods tools
   getGoodsFeeSettings: () => client.get('/goods-fee-settings').then((r) => r.data.data),

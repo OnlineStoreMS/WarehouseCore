@@ -15,6 +15,7 @@ import {
   Printer,
   Collection,
   Location,
+  Link,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -61,6 +62,7 @@ const sections: Section[] = [
       { title: '仓库设置', desc: '仓库档案与默认仓', path: '/warehouses', icon: OfficeBuilding, color: '#909399' },
       { title: '库位管理', desc: '库位编码与拣货位置', path: '/locations', icon: Location, color: '#909399' },
       { title: '包装规格', desc: '外包装规格档案', path: '/pack-specs', icon: Box, color: '#909399' },
+      { title: '商品库映射', desc: '商品库 SKU 与仓配 SKU 绑定', path: '/pim-mappings', icon: Link, color: '#909399' },
     ],
   },
 ]

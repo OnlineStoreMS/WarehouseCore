@@ -77,7 +77,7 @@ const router = createRouter({
         { path: 'transfers', name: 'Transfers', component: () => import('../views/transfer/TransferList.vue'), meta: { title: '仓库调拨单' } },
         { path: 'other-inbounds', name: 'OtherInbounds', component: () => import('../views/io/OtherInboundList.vue'), meta: { title: '其它入库单' } },
         { path: 'other-outbounds', name: 'OtherOutbounds', component: () => import('../views/io/OtherOutboundList.vue'), meta: { title: '其它出库单' } },
-        { path: 'pim-mappings', name: 'PimMappings', component: () => import('../views/integ/PimMappingList.vue'), meta: { title: 'PIM 映射' } },
+        { path: 'pim-mappings', name: 'PimMappings', component: () => import('../views/integ/PimMappingList.vue'), meta: { title: '商品库映射' } },
       ],
     },
   ],

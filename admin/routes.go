@@ -100,10 +100,12 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.POST("/transfers/:id/receive", h.ReceiveTransfer)
 	g.POST("/transfers/:id/cancel", h.CancelTransfer)
 
-	// M4 integrations
+	// M4 integrations / 商品库映射
 	g.GET("/pim-mappings", h.ListPimMappings)
 	g.POST("/pim-mappings", h.UpsertPimMapping)
 	g.DELETE("/pim-mappings/:id", h.DeletePimMapping)
+	g.GET("/pim-products", h.ListPimProducts)
+	g.GET("/pim-products/:id/skus", h.GetPimProductSkus)
 	g.POST("/integrations/purchase-inbound", h.PurchaseInbound)
 	g.POST("/integrations/transfer-to-store", h.TransferToStore)
 

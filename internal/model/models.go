@@ -39,55 +39,55 @@ type InvProduct struct {
 	PimSpuID           *uint64    `json:"pimSpuId"`
 
 	// 物流及报关
-	Features           string  `gorm:"size:512" json:"features"` // 商品特性
-	AliasCn            string  `gorm:"size:128" json:"aliasCn"`
-	AliasEn            string  `gorm:"size:128" json:"aliasEn"`
-	DeclareWeightG     float64 `gorm:"type:numeric(12,3);default:0" json:"declareWeightG"`
-	DeclaredValue      float64 `gorm:"type:numeric(14,4);default:0" json:"declaredValue"`
-	OriginCountryCode  string  `gorm:"size:16" json:"originCountryCode"`
-	HSCode             string  `gorm:"size:64" json:"hsCode"`
+	Features            string  `gorm:"size:512" json:"features"` // 商品特性
+	AliasCn             string  `gorm:"size:128" json:"aliasCn"`
+	AliasEn             string  `gorm:"size:128" json:"aliasEn"`
+	DeclareWeightG      float64 `gorm:"type:numeric(12,3);default:0" json:"declareWeightG"`
+	DeclaredValue       float64 `gorm:"type:numeric(14,4);default:0" json:"declaredValue"`
+	OriginCountryCode   string  `gorm:"size:16" json:"originCountryCode"`
+	HSCode              string  `gorm:"size:64" json:"hsCode"`
 	ExportDeclaredValue float64 `gorm:"type:numeric(14,4);default:0" json:"exportDeclaredValue"`
 
 	// 采购及供应商
-	PurchaseChannel string  `gorm:"size:256" json:"purchaseChannel"`
-	Purchaser       string  `gorm:"size:128" json:"purchaser"`
+	PurchaseChannel  string  `gorm:"size:256" json:"purchaseChannel"`
+	Purchaser        string  `gorm:"size:128" json:"purchaser"`
 	MinPurchasePrice float64 `gorm:"type:numeric(14,4);default:0" json:"minPurchasePrice"`
-	StockMinAmount  float64 `gorm:"type:numeric(14,4);default:0" json:"stockMinAmount"`
+	StockMinAmount   float64 `gorm:"type:numeric(14,4);default:0" json:"stockMinAmount"`
 
 	// 包装信息
-	PackFee       float64 `gorm:"type:numeric(14,4);default:0" json:"packFee"` // 内包装成本
-	PackageCount  float64 `gorm:"type:numeric(14,4);default:0" json:"packageCount"`
-	OutLong       float64 `gorm:"type:numeric(12,3);default:0" json:"outLong"`
-	OutWide       float64 `gorm:"type:numeric(12,3);default:0" json:"outWide"`
-	OutHigh       float64 `gorm:"type:numeric(12,3);default:0" json:"outHigh"`
+	PackFee        float64 `gorm:"type:numeric(14,4);default:0" json:"packFee"` // 内包装成本
+	PackageCount   float64 `gorm:"type:numeric(14,4);default:0" json:"packageCount"`
+	OutLong        float64 `gorm:"type:numeric(12,3);default:0" json:"outLong"`
+	OutWide        float64 `gorm:"type:numeric(12,3);default:0" json:"outWide"`
+	OutHigh        float64 `gorm:"type:numeric(12,3);default:0" json:"outHigh"`
 	OutGrossWeight float64 `gorm:"type:numeric(12,3);default:0" json:"outGrossWeight"`
-	OutNetWeight  float64 `gorm:"type:numeric(12,3);default:0" json:"outNetWeight"`
-	InLong        float64 `gorm:"type:numeric(12,3);default:0" json:"inLong"`
-	InWide        float64 `gorm:"type:numeric(12,3);default:0" json:"inWide"`
-	InHigh        float64 `gorm:"type:numeric(12,3);default:0" json:"inHigh"`
-	InGrossWeight float64 `gorm:"type:numeric(12,3);default:0" json:"inGrossWeight"`
-	InNetWeight   float64 `gorm:"type:numeric(12,3);default:0" json:"inNetWeight"`
-	PackMsg       string  `gorm:"size:1024" json:"packMsg"`
+	OutNetWeight   float64 `gorm:"type:numeric(12,3);default:0" json:"outNetWeight"`
+	InLong         float64 `gorm:"type:numeric(12,3);default:0" json:"inLong"`
+	InWide         float64 `gorm:"type:numeric(12,3);default:0" json:"inWide"`
+	InHigh         float64 `gorm:"type:numeric(12,3);default:0" json:"inHigh"`
+	InGrossWeight  float64 `gorm:"type:numeric(12,3);default:0" json:"inGrossWeight"`
+	InNetWeight    float64 `gorm:"type:numeric(12,3);default:0" json:"inNetWeight"`
+	PackMsg        string  `gorm:"size:1024" json:"packMsg"`
 
 	// 销售信息
-	ShopTitle   string  `gorm:"size:256" json:"shopTitle"`
-	Brand       string  `gorm:"size:128" json:"brand"`
-	SpecClass   string  `gorm:"size:128" json:"specClass"` // 规格
-	Model       string  `gorm:"size:128" json:"model"`
-	Material    string  `gorm:"size:128" json:"material"`
-	Style       string  `gorm:"size:128" json:"style"`
-	Season      string  `gorm:"size:64" json:"season"`
-	Unit        string  `gorm:"size:32" json:"unit"`
-	RetailPrice float64 `gorm:"type:numeric(14,4);default:0" json:"retailPrice"`
-	BatchPrice  float64 `gorm:"type:numeric(14,4);default:0" json:"batchPrice"`
+	ShopTitle    string  `gorm:"size:256" json:"shopTitle"`
+	Brand        string  `gorm:"size:128" json:"brand"`
+	SpecClass    string  `gorm:"size:128" json:"specClass"` // 规格
+	Model        string  `gorm:"size:128" json:"model"`
+	Material     string  `gorm:"size:128" json:"material"`
+	Style        string  `gorm:"size:128" json:"style"`
+	Season       string  `gorm:"size:64" json:"season"`
+	Unit         string  `gorm:"size:32" json:"unit"`
+	RetailPrice  float64 `gorm:"type:numeric(14,4);default:0" json:"retailPrice"`
+	BatchPrice   float64 `gorm:"type:numeric(14,4);default:0" json:"batchPrice"`
 	MaxSalePrice float64 `gorm:"type:numeric(14,4);default:0" json:"maxSalePrice"`
 	MinSalePrice float64 `gorm:"type:numeric(14,4);default:0" json:"minSalePrice"`
-	MarketPrice float64 `gorm:"type:numeric(14,4);default:0" json:"marketPrice"`
+	MarketPrice  float64 `gorm:"type:numeric(14,4);default:0" json:"marketPrice"`
 
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Skus      []InvSku  `gorm:"foreignKey:ParentID" json:"skus,omitempty"`
-	Suppliers []InvProductSupplier `gorm:"foreignKey:ProductID" json:"suppliers,omitempty"`
+	CreatedAt    time.Time               `json:"createdAt"`
+	UpdatedAt    time.Time               `json:"updatedAt"`
+	Skus         []InvSku                `gorm:"foreignKey:ParentID" json:"skus,omitempty"`
+	Suppliers    []InvProductSupplier    `gorm:"foreignKey:ProductID" json:"suppliers,omitempty"`
 	Descriptions []InvProductDescription `gorm:"foreignKey:ProductID" json:"descriptions,omitempty"`
 }
 
@@ -95,14 +95,14 @@ func (InvProduct) TableName() string { return "inv_products" }
 
 // InvProductDescription 多语言商品描述（对齐普源「销售信息 → 多语言商品描述」）
 type InvProductDescription struct {
-	ID           uint64 `gorm:"primaryKey" json:"id"`
-	TenantID     uint64 `gorm:"index;not null" json:"tenantId"`
-	ProductID    uint64 `gorm:"index;not null" json:"productId"`
-	LanguageCode string `gorm:"size:16;not null" json:"languageCode"` // zh-CN / en / de ...
-	LanguageName string `gorm:"size:64" json:"languageName"`
-	Title        string `gorm:"size:512" json:"title"`
-	Description  string `gorm:"type:text" json:"description"`
-	Sort         int    `gorm:"default:0" json:"sort"`
+	ID           uint64    `gorm:"primaryKey" json:"id"`
+	TenantID     uint64    `gorm:"index;not null" json:"tenantId"`
+	ProductID    uint64    `gorm:"index;not null" json:"productId"`
+	LanguageCode string    `gorm:"size:16;not null" json:"languageCode"` // zh-CN / en / de ...
+	LanguageName string    `gorm:"size:64" json:"languageName"`
+	Title        string    `gorm:"size:512" json:"title"`
+	Description  string    `gorm:"type:text" json:"description"`
+	Sort         int       `gorm:"default:0" json:"sort"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
 }
@@ -111,19 +111,19 @@ func (InvProductDescription) TableName() string { return "inv_product_descriptio
 
 // InvProductSupplier 商品多供应商（对齐普源，挂在父商品而非库存SKU；供应商主数据来自 SupplyCore VMS）
 type InvProductSupplier struct {
-	ID           uint64  `gorm:"primaryKey" json:"id"`
-	TenantID     uint64  `gorm:"index;not null" json:"tenantId"`
-	ProductID    uint64  `gorm:"index;not null" json:"productId"`
-	SupplierID   uint64  `gorm:"index;not null" json:"supplierId"` // SupplyCore 供应商 ID
-	SupplierCode string  `gorm:"size:64" json:"supplierCode"`
-	SupplierName string  `gorm:"size:256;not null" json:"supplierName"`
-	PurchaseURL  string  `gorm:"size:1024" json:"purchaseUrl"` // 采购网址
-	Price        float64 `gorm:"type:numeric(14,4);default:0" json:"price"` // 供应商报价
-	Remark       string  `gorm:"size:512" json:"remark"`                     // 进货说明
-	ContactName  string  `gorm:"size:128" json:"contactName"`
-	Phone        string  `gorm:"size:64" json:"phone"`
-	IsDefault    int8    `gorm:"default:0" json:"isDefault"`
-	Sort         int     `gorm:"default:0" json:"sort"`
+	ID           uint64    `gorm:"primaryKey" json:"id"`
+	TenantID     uint64    `gorm:"index;not null" json:"tenantId"`
+	ProductID    uint64    `gorm:"index;not null" json:"productId"`
+	SupplierID   uint64    `gorm:"index;not null" json:"supplierId"` // SupplyCore 供应商 ID
+	SupplierCode string    `gorm:"size:64" json:"supplierCode"`
+	SupplierName string    `gorm:"size:256;not null" json:"supplierName"`
+	PurchaseURL  string    `gorm:"size:1024" json:"purchaseUrl"`              // 采购网址
+	Price        float64   `gorm:"type:numeric(14,4);default:0" json:"price"` // 供应商报价
+	Remark       string    `gorm:"size:512" json:"remark"`                    // 进货说明
+	ContactName  string    `gorm:"size:128" json:"contactName"`
+	Phone        string    `gorm:"size:64" json:"phone"`
+	IsDefault    int8      `gorm:"default:0" json:"isDefault"`
+	Sort         int       `gorm:"default:0" json:"sort"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
 }
@@ -147,27 +147,27 @@ const (
 )
 
 type InvSku struct {
-	ID                uint64  `gorm:"primaryKey" json:"id"`
-	TenantID          uint64  `gorm:"index;not null" json:"tenantId"`
-	ParentID          uint64  `gorm:"index;not null" json:"parentId"`
-	SkuCode           string  `gorm:"size:64;not null" json:"skuCode"`
-	Pic               string  `gorm:"size:512" json:"pic"` // SKU 图片
-	Status            string  `gorm:"size:32;default:active" json:"status"`
-	ProductType       string  `gorm:"size:32;default:normal" json:"productType"` // normal/combo/assembly
-	GoodsKind         string  `gorm:"size:32;default:normal" json:"goodsKind"`   // normal/packaging/accessory/gift
-	PickName          string  `gorm:"size:256" json:"pickName"`
-	Style1            string  `gorm:"size:128" json:"style1"`
-	Style2            string  `gorm:"size:128" json:"style2"`
-	Style3            string  `gorm:"size:128" json:"style3"`
-	WeightG           float64 `gorm:"type:numeric(12,3);default:0" json:"weightG"`
-	LastPurchasePrice float64 `gorm:"type:numeric(14,4);default:0" json:"lastPurchasePrice"`
-	MinPurchasePrice  float64 `gorm:"type:numeric(14,4);default:0" json:"minPurchasePrice"`
-	RetailPrice       float64 `gorm:"type:numeric(14,4);default:0" json:"retailPrice"`
-	Description       string  `gorm:"type:text" json:"description"`
-	UPC               string  `gorm:"size:64" json:"upc"`
-	ASIN              string  `gorm:"size:64" json:"asin"`
-	SupplierItemNo    string  `gorm:"size:128" json:"supplierItemNo"`
-	PimSkuID          *uint64 `json:"pimSkuId"`
+	ID                uint64    `gorm:"primaryKey" json:"id"`
+	TenantID          uint64    `gorm:"index;not null" json:"tenantId"`
+	ParentID          uint64    `gorm:"index;not null" json:"parentId"`
+	SkuCode           string    `gorm:"size:64;not null" json:"skuCode"`
+	Pic               string    `gorm:"size:512" json:"pic"` // SKU 图片
+	Status            string    `gorm:"size:32;default:active" json:"status"`
+	ProductType       string    `gorm:"size:32;default:normal" json:"productType"` // normal/combo/assembly
+	GoodsKind         string    `gorm:"size:32;default:normal" json:"goodsKind"`   // normal/packaging/accessory/gift
+	PickName          string    `gorm:"size:256" json:"pickName"`
+	Style1            string    `gorm:"size:128" json:"style1"`
+	Style2            string    `gorm:"size:128" json:"style2"`
+	Style3            string    `gorm:"size:128" json:"style3"`
+	WeightG           float64   `gorm:"type:numeric(12,3);default:0" json:"weightG"`
+	LastPurchasePrice float64   `gorm:"type:numeric(14,4);default:0" json:"lastPurchasePrice"`
+	MinPurchasePrice  float64   `gorm:"type:numeric(14,4);default:0" json:"minPurchasePrice"`
+	RetailPrice       float64   `gorm:"type:numeric(14,4);default:0" json:"retailPrice"`
+	Description       string    `gorm:"type:text" json:"description"`
+	UPC               string    `gorm:"size:64" json:"upc"`
+	ASIN              string    `gorm:"size:64" json:"asin"`
+	SupplierItemNo    string    `gorm:"size:128" json:"supplierItemNo"`
+	PimSkuID          *uint64   `json:"pimSkuId"`
 	CreatedAt         time.Time `json:"createdAt"`
 	UpdatedAt         time.Time `json:"updatedAt"`
 }
@@ -179,7 +179,7 @@ func (InvSku) TableName() string { return "inv_skus" }
 type InvPackSpec struct {
 	ID        uint64    `gorm:"primaryKey" json:"id"`
 	TenantID  uint64    `gorm:"index;not null" json:"tenantId"`
-	Name      string    `gorm:"size:128;not null" json:"name"` // 包装规格名称
+	Name      string    `gorm:"size:128;not null" json:"name"`            // 包装规格名称
 	Cost      float64   `gorm:"type:numeric(14,4);default:0" json:"cost"` // 成本价
 	WeightG   float64   `gorm:"type:numeric(12,3);default:0" json:"weightG"`
 	Remark    string    `gorm:"size:512" json:"remark"`
@@ -206,15 +206,15 @@ func (InvPackSpecSku) TableName() string { return "inv_pack_spec_skus" }
 // ── BOM ──
 
 type InvBomHeader struct {
-	ID          uint64        `gorm:"primaryKey" json:"id"`
-	TenantID    uint64        `gorm:"index;not null" json:"tenantId"`
-	ParentSkuID uint64        `gorm:"index;not null" json:"parentSkuId"` // 组合/组装品库存SKU
-	BomType     string        `gorm:"size:32;not null" json:"bomType"`   // combo / assembly
-	Remark      string        `gorm:"size:512" json:"remark"`
-	Status      int8          `gorm:"default:1" json:"status"`
-	CreatedAt   time.Time     `json:"createdAt"`
-	UpdatedAt   time.Time     `json:"updatedAt"`
-	Items       []InvBomItem  `gorm:"foreignKey:BomID" json:"items,omitempty"`
+	ID          uint64       `gorm:"primaryKey" json:"id"`
+	TenantID    uint64       `gorm:"index;not null" json:"tenantId"`
+	ParentSkuID uint64       `gorm:"index;not null" json:"parentSkuId"` // 组合/组装品库存SKU
+	BomType     string       `gorm:"size:32;not null" json:"bomType"`   // combo / assembly
+	Remark      string       `gorm:"size:512" json:"remark"`
+	Status      int8         `gorm:"default:1" json:"status"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	UpdatedAt   time.Time    `json:"updatedAt"`
+	Items       []InvBomItem `gorm:"foreignKey:BomID" json:"items,omitempty"`
 }
 
 func (InvBomHeader) TableName() string { return "inv_bom_headers" }
@@ -248,7 +248,7 @@ type Warehouse struct {
 	Address            string    `gorm:"size:512" json:"address"`
 	Contact            string    `gorm:"size:128" json:"contact"`
 	Phone              string    `gorm:"size:64" json:"phone"`
-	Country            string    `gorm:"size:64" json:"country"`             // 所在国家（对齐普源）
+	Country            string    `gorm:"size:64" json:"country"` // 所在国家（对齐普源）
 	Remark             string    `gorm:"size:512" json:"remark"`
 	Status             int8      `gorm:"default:1" json:"status"`
 	IsDefault          int8      `gorm:"default:0" json:"isDefault"`
@@ -263,21 +263,21 @@ type Warehouse struct {
 func (Warehouse) TableName() string { return "warehouses" }
 
 type WarehouseLocation struct {
-	ID           uint64    `gorm:"primaryKey" json:"id"`
-	TenantID     uint64    `gorm:"index;not null" json:"tenantId"`
-	WarehouseID  uint64    `gorm:"index;not null" json:"warehouseId"`
-	Code         string    `gorm:"size:64;not null" json:"code"` // 库位名称
-	Zone         string    `gorm:"size:64" json:"zone"`
-	Aisle        string    `gorm:"size:64" json:"aisle"`
-	Shelf        string    `gorm:"size:64" json:"shelf"`
-	Bin          string    `gorm:"size:64" json:"bin"`
-	PickOrder    int       `gorm:"default:0" json:"pickOrder"`       // 拣货顺序
-	PickPosition string    `gorm:"size:128" json:"pickPosition"`     // 拣货位置
-	Remark       string    `gorm:"size:512" json:"remark"`
-	Status       int8      `gorm:"default:1" json:"status"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-	WarehouseName string   `gorm:"-" json:"warehouseName,omitempty"`
+	ID            uint64    `gorm:"primaryKey" json:"id"`
+	TenantID      uint64    `gorm:"index;not null" json:"tenantId"`
+	WarehouseID   uint64    `gorm:"index;not null" json:"warehouseId"`
+	Code          string    `gorm:"size:64;not null" json:"code"` // 库位名称
+	Zone          string    `gorm:"size:64" json:"zone"`
+	Aisle         string    `gorm:"size:64" json:"aisle"`
+	Shelf         string    `gorm:"size:64" json:"shelf"`
+	Bin           string    `gorm:"size:64" json:"bin"`
+	PickOrder     int       `gorm:"default:0" json:"pickOrder"`   // 拣货顺序
+	PickPosition  string    `gorm:"size:128" json:"pickPosition"` // 拣货位置
+	Remark        string    `gorm:"size:512" json:"remark"`
+	Status        int8      `gorm:"default:1" json:"status"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	WarehouseName string    `gorm:"-" json:"warehouseName,omitempty"`
 }
 
 func (WarehouseLocation) TableName() string { return "warehouse_locations" }
@@ -311,14 +311,14 @@ type InvBalance struct {
 func (InvBalance) TableName() string { return "inv_balances" }
 
 const (
-	MoveOtherIn        = "other_in"
-	MoveOtherOut       = "other_out"
-	MoveTransferIn     = "transfer_in"
-	MoveTransferOut    = "transfer_out"
-	MoveStocktakeGain  = "stocktake_gain"
-	MoveStocktakeLoss  = "stocktake_loss"
-	MovePurchaseIn     = "purchase_in"
-	MoveSaleOut        = "sale_out"
+	MoveOtherIn       = "other_in"
+	MoveOtherOut      = "other_out"
+	MoveTransferIn    = "transfer_in"
+	MoveTransferOut   = "transfer_out"
+	MoveStocktakeGain = "stocktake_gain"
+	MoveStocktakeLoss = "stocktake_loss"
+	MovePurchaseIn    = "purchase_in"
+	MoveSaleOut       = "sale_out"
 )
 
 type StockMovement struct {
@@ -376,24 +376,24 @@ type OtherInboundOrder struct {
 func (OtherInboundOrder) TableName() string { return "other_inbound_orders" }
 
 type OtherInboundItem struct {
-	ID       uint64  `gorm:"primaryKey" json:"id"`
-	TenantID uint64  `gorm:"index;not null" json:"tenantId"`
-	OrderID  uint64  `gorm:"index;not null" json:"orderId"`
-	InvSkuID uint64  `gorm:"index;not null" json:"invSkuId"`
-	Qty      float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
-	Cost     float64 `gorm:"type:numeric(14,4);default:0" json:"cost"`
-	Remark   string  `gorm:"size:256" json:"remark"`
-	SkuCode  string  `gorm:"-" json:"skuCode,omitempty"`
-	PickName string  `gorm:"-" json:"pickName,omitempty"`
-	Amount   float64 `gorm:"-" json:"amount,omitempty"`
-	Style1   string  `gorm:"-" json:"style1,omitempty"`
-	Style2   string  `gorm:"-" json:"style2,omitempty"`
-	Style3   string  `gorm:"-" json:"style3,omitempty"`
-	Brand    string  `gorm:"-" json:"brand,omitempty"`
-	SpecClass string `gorm:"-" json:"specClass,omitempty"`
-	Model    string  `gorm:"-" json:"model,omitempty"`
-	Material string  `gorm:"-" json:"material,omitempty"`
-	Unit     string  `gorm:"-" json:"unit,omitempty"`
+	ID        uint64  `gorm:"primaryKey" json:"id"`
+	TenantID  uint64  `gorm:"index;not null" json:"tenantId"`
+	OrderID   uint64  `gorm:"index;not null" json:"orderId"`
+	InvSkuID  uint64  `gorm:"index;not null" json:"invSkuId"`
+	Qty       float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
+	Cost      float64 `gorm:"type:numeric(14,4);default:0" json:"cost"`
+	Remark    string  `gorm:"size:256" json:"remark"`
+	SkuCode   string  `gorm:"-" json:"skuCode,omitempty"`
+	PickName  string  `gorm:"-" json:"pickName,omitempty"`
+	Amount    float64 `gorm:"-" json:"amount,omitempty"`
+	Style1    string  `gorm:"-" json:"style1,omitempty"`
+	Style2    string  `gorm:"-" json:"style2,omitempty"`
+	Style3    string  `gorm:"-" json:"style3,omitempty"`
+	Brand     string  `gorm:"-" json:"brand,omitempty"`
+	SpecClass string  `gorm:"-" json:"specClass,omitempty"`
+	Model     string  `gorm:"-" json:"model,omitempty"`
+	Material  string  `gorm:"-" json:"material,omitempty"`
+	Unit      string  `gorm:"-" json:"unit,omitempty"`
 }
 
 func (OtherInboundItem) TableName() string { return "other_inbound_items" }
@@ -561,6 +561,10 @@ type PimSkuMapping struct {
 	Remark     string    `gorm:"size:256" json:"remark"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+	// 展示字段
+	InvSkuCode  string `gorm:"-" json:"invSkuCode,omitempty"`
+	PickName    string `gorm:"-" json:"pickName,omitempty"`
+	ProductName string `gorm:"-" json:"productName,omitempty"`
 }
 
 func (PimSkuMapping) TableName() string { return "pim_sku_mappings" }
@@ -569,25 +573,25 @@ func (PimSkuMapping) TableName() string { return "pim_sku_mappings" }
 
 // InvGoodsFeeBase 基础费用（每租户一条）
 type InvGoodsFeeBase struct {
-	ID             uint64  `gorm:"primaryKey" json:"id"`
-	TenantID       uint64  `gorm:"uniqueIndex;not null" json:"tenantId"`
-	StoreFee       float64 `gorm:"type:numeric(14,4);default:0" json:"storeFee"`       // 单位系数仓库费用
-	FixedStoreFee  float64 `gorm:"type:numeric(14,4);default:0" json:"fixedStoreFee"`  // 仓库固定费用
-	PackFee        float64 `gorm:"type:numeric(14,4);default:0" json:"packFee"`        // 单位系数打包费用
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
+	ID            uint64    `gorm:"primaryKey" json:"id"`
+	TenantID      uint64    `gorm:"uniqueIndex;not null" json:"tenantId"`
+	StoreFee      float64   `gorm:"type:numeric(14,4);default:0" json:"storeFee"`      // 单位系数仓库费用
+	FixedStoreFee float64   `gorm:"type:numeric(14,4);default:0" json:"fixedStoreFee"` // 仓库固定费用
+	PackFee       float64   `gorm:"type:numeric(14,4);default:0" json:"packFee"`       // 单位系数打包费用
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 func (InvGoodsFeeBase) TableName() string { return "inv_goods_fee_bases" }
 
 // InvScoreWeightRule 按重量区间的商品分值系数
 type InvScoreWeightRule struct {
-	ID          uint64  `gorm:"primaryKey" json:"id"`
-	TenantID    uint64  `gorm:"index;not null" json:"tenantId"`
-	WeightMinG  float64 `gorm:"type:numeric(12,3);default:0" json:"weightMinG"`
-	WeightMaxG  float64 `gorm:"type:numeric(12,3);default:0" json:"weightMaxG"` // 0=不限
-	ScoreFactor float64 `gorm:"type:numeric(10,4);default:1" json:"scoreFactor"`
-	Sort        int     `gorm:"default:0" json:"sort"`
+	ID          uint64    `gorm:"primaryKey" json:"id"`
+	TenantID    uint64    `gorm:"index;not null" json:"tenantId"`
+	WeightMinG  float64   `gorm:"type:numeric(12,3);default:0" json:"weightMinG"`
+	WeightMaxG  float64   `gorm:"type:numeric(12,3);default:0" json:"weightMaxG"` // 0=不限
+	ScoreFactor float64   `gorm:"type:numeric(10,4);default:1" json:"scoreFactor"`
+	Sort        int       `gorm:"default:0" json:"sort"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
@@ -596,12 +600,12 @@ func (InvScoreWeightRule) TableName() string { return "inv_score_weight_rules" }
 
 // InvOrderQtyCoeff 按订单商品数量区间的数量系数
 type InvOrderQtyCoeff struct {
-	ID        uint64  `gorm:"primaryKey" json:"id"`
-	TenantID  uint64  `gorm:"index;not null" json:"tenantId"`
-	QtyMin    float64 `gorm:"type:numeric(14,4);default:0" json:"qtyMin"`
-	QtyMax    float64 `gorm:"type:numeric(14,4);default:0" json:"qtyMax"` // 0=不限
-	Coeff     float64 `gorm:"type:numeric(10,4);default:1" json:"coeff"`
-	Sort      int     `gorm:"default:0" json:"sort"`
+	ID        uint64    `gorm:"primaryKey" json:"id"`
+	TenantID  uint64    `gorm:"index;not null" json:"tenantId"`
+	QtyMin    float64   `gorm:"type:numeric(14,4);default:0" json:"qtyMin"`
+	QtyMax    float64   `gorm:"type:numeric(14,4);default:0" json:"qtyMax"` // 0=不限
+	Coeff     float64   `gorm:"type:numeric(10,4);default:1" json:"coeff"`
+	Sort      int       `gorm:"default:0" json:"sort"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -610,26 +614,26 @@ func (InvOrderQtyCoeff) TableName() string { return "inv_order_qty_coeffs" }
 
 // InvProfitTrial 商品利润试算行（对齐普源 commzxz）
 type InvProfitTrial struct {
-	ID              uint64  `gorm:"primaryKey" json:"id"`
-	TenantID        uint64  `gorm:"index;not null" json:"tenantId"`
-	ParentSKU       string  `gorm:"size:64" json:"parentSku"`
-	SKU             string  `gorm:"size:64;not null" json:"sku"`
-	ShopSKU         string  `gorm:"size:64" json:"shopSku"`
-	ShopName        string  `gorm:"size:128" json:"shopName"`
-	SKUName         string  `gorm:"size:256" json:"skuName"`
-	RetailPrice     float64 `gorm:"type:numeric(14,4);default:0" json:"retailPrice"`     // 零售价格($)
-	PriceUS         float64 `gorm:"type:numeric(14,4);default:0" json:"priceUs"`         // 产品售价($)
-	Price           float64 `gorm:"type:numeric(14,4);default:0" json:"price"`           // 产品售价(￥)
-	CostPrice       float64 `gorm:"type:numeric(14,4);default:0" json:"costPrice"`       // 商品成本(￥)
-	PlatformFreight float64 `gorm:"type:numeric(14,4);default:0" json:"platformFreight"` // 平台交易费
-	HeadFreight     float64 `gorm:"type:numeric(14,4);default:0" json:"headFreight"`     // 头程运费
-	Freight         float64 `gorm:"type:numeric(14,4);default:0" json:"freight"`         // 运费
-	PackageFee      float64 `gorm:"type:numeric(14,4);default:0" json:"packageFee"`      // 包装费
-	Tariff          float64 `gorm:"type:numeric(14,4);default:0" json:"tariff"`          // 关税
-	Profit          float64 `gorm:"type:numeric(14,4);default:0" json:"profit"`
-	ProfitMargin    float64 `gorm:"type:numeric(10,4);default:0" json:"profitMargin"` // %
-	ASIN            string  `gorm:"size:64" json:"asin"`
-	Remark          string  `gorm:"size:512" json:"remark"`
+	ID              uint64    `gorm:"primaryKey" json:"id"`
+	TenantID        uint64    `gorm:"index;not null" json:"tenantId"`
+	ParentSKU       string    `gorm:"size:64" json:"parentSku"`
+	SKU             string    `gorm:"size:64;not null" json:"sku"`
+	ShopSKU         string    `gorm:"size:64" json:"shopSku"`
+	ShopName        string    `gorm:"size:128" json:"shopName"`
+	SKUName         string    `gorm:"size:256" json:"skuName"`
+	RetailPrice     float64   `gorm:"type:numeric(14,4);default:0" json:"retailPrice"`     // 零售价格($)
+	PriceUS         float64   `gorm:"type:numeric(14,4);default:0" json:"priceUs"`         // 产品售价($)
+	Price           float64   `gorm:"type:numeric(14,4);default:0" json:"price"`           // 产品售价(￥)
+	CostPrice       float64   `gorm:"type:numeric(14,4);default:0" json:"costPrice"`       // 商品成本(￥)
+	PlatformFreight float64   `gorm:"type:numeric(14,4);default:0" json:"platformFreight"` // 平台交易费
+	HeadFreight     float64   `gorm:"type:numeric(14,4);default:0" json:"headFreight"`     // 头程运费
+	Freight         float64   `gorm:"type:numeric(14,4);default:0" json:"freight"`         // 运费
+	PackageFee      float64   `gorm:"type:numeric(14,4);default:0" json:"packageFee"`      // 包装费
+	Tariff          float64   `gorm:"type:numeric(14,4);default:0" json:"tariff"`          // 关税
+	Profit          float64   `gorm:"type:numeric(14,4);default:0" json:"profit"`
+	ProfitMargin    float64   `gorm:"type:numeric(10,4);default:0" json:"profitMargin"` // %
+	ASIN            string    `gorm:"size:64" json:"asin"`
+	Remark          string    `gorm:"size:512" json:"remark"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
 }

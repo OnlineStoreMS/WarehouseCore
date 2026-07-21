@@ -53,7 +53,7 @@ function search() {
       <template #header>
         <div class="hdr">
           <span>店铺SKU明细</span>
-          <span class="hint">对齐普源：店铺/渠道 SKU 与库存 SKU 对照（当前数据来自 PIM 映射，可在「对接预留」维护）</span>
+          <span class="hint">店铺/渠道侧对照；数据来自「商品库映射」</span>
         </div>
       </template>
 
@@ -68,7 +68,7 @@ function search() {
           @clear="search"
         />
         <el-button type="primary" @click="search">查询</el-button>
-        <el-button @click="router.push('/pim-mappings')">维护映射</el-button>
+        <el-button @click="router.push('/pim-mappings')">维护商品库映射</el-button>
       </div>
 
       <el-table :data="list" border stripe>

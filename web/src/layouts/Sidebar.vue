@@ -106,7 +106,7 @@ watch(() => route.path, () => {})
 
       <el-sub-menu index="integ">
         <template #title><el-icon><Link /></el-icon><span>对接预留</span></template>
-        <el-menu-item index="/pim-mappings" @click="navigate('/pim-mappings')">PIM 映射</el-menu-item>
+        <el-menu-item index="/pim-mappings" @click="navigate('/pim-mappings')">商品库映射</el-menu-item>
       </el-sub-menu>
     </el-menu>
   </aside>
