@@ -406,6 +406,16 @@ type PurchaseInboundDTO struct {
 	Items       []DocItemDTO `json:"items" binding:"required,min=1"`
 }
 
+type SaleOutboundDTO struct {
+	WarehouseID uint64       `json:"warehouseId" binding:"required"`
+	LocationID  uint64       `json:"locationId"`
+	RefDocType  string       `json:"refDocType"` // self_order
+	RefDocID    uint64       `json:"refDocId"`
+	RefDocNo    string       `json:"refDocNo"`
+	Remark      string       `json:"remark"`
+	Items       []DocItemDTO `json:"items" binding:"required,min=1"`
+}
+
 type StoreTransferDTO struct {
 	FromWarehouseID uint64       `json:"fromWarehouseId" binding:"required"`
 	FromLocationID  uint64       `json:"fromLocationId"`

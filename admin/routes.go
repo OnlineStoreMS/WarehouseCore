@@ -107,6 +107,7 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.GET("/pim-products", h.ListPimProducts)
 	g.GET("/pim-products/:id/skus", h.GetPimProductSkus)
 	g.POST("/integrations/purchase-inbound", h.PurchaseInbound)
+	g.POST("/integrations/sale-outbound", h.SaleOutbound)
 	g.POST("/integrations/transfer-to-store", h.TransferToStore)
 
 	// VMS suppliers (proxy SupplyCore)

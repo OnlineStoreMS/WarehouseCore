@@ -1195,6 +1195,20 @@ func (h *Handlers) PurchaseInbound(c *gin.Context) {
 	response.Created(c, item)
 }
 
+func (h *Handlers) SaleOutbound(c *gin.Context) {
+	var in dto.SaleOutboundDTO
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	item, err := h.integ(c).SaleOutbound(&in, authcontext.UserID(c))
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.Created(c, item)
+}
+
 func (h *Handlers) TransferToStore(c *gin.Context) {
 	var in dto.StoreTransferDTO
 	if err := c.ShouldBindJSON(&in); err != nil {

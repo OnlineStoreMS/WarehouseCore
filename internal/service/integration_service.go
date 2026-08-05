@@ -196,6 +196,51 @@ func (s *IntegrationService) PurchaseInbound(in *dto.PurchaseInboundDTO, userID 
 	return doc.GetOtherIn(order.ID)
 }
 
+// SaleOutbound posts stock out for SelfCore self-ship (sale_out).
+func (s *IntegrationService) SaleOutbound(in *dto.SaleOutboundDTO, userID uint64) (*model.OtherOutboundOrder, error) {
+	doc := DocumentService{repos: s.repos, tenantID: s.tenantID}
+	order, err := doc.CreateOtherOut(&dto.OtherOutboundDTO{
+		WarehouseID: in.WarehouseID,
+		LocationID:  in.LocationID,
+		Reason:      "sale",
+		Remark:      in.Remark,
+		Items:       in.Items,
+	}, userID)
+	if err != nil {
+		return nil, err
+	}
+	engine := NewStockEngine(s.repos.DB, s.tenantID)
+	err = s.repos.DB.Transaction(func(tx *gorm.DB) error {
+		var lines []MoveLine
+		for _, it := range order.Items {
+			expanded, e := doc.expandOutboundLines(tx, order.WarehouseID, order.LocationID, it.InvSkuID, it.Qty, "sale_outbound", order.DocNo, order.ID, userID)
+			if e != nil {
+				return e
+			}
+			for i := range expanded {
+				expanded[i].MoveType = model.MoveSaleOut
+				expanded[i].RefDocType = in.RefDocType
+				expanded[i].RefDocID = in.RefDocID
+				expanded[i].Remark = in.RefDocNo
+			}
+			lines = append(lines, expanded...)
+		}
+		if e := engine.ApplyMoves(tx, lines); e != nil {
+			return e
+		}
+		now := time.Now()
+		return tx.Model(order).Updates(map[string]interface{}{
+			"status":    model.DocStatusPosted,
+			"posted_at": now,
+			"reason":    "sale",
+		}).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	return doc.GetOtherOut(order.ID)
+}
+
 // TransferToStore deducts central warehouse stock for store intake (M4 reserved; StoreCore confirms separately).
 func (s *IntegrationService) TransferToStore(in *dto.StoreTransferDTO, userID uint64) (*model.TransferOrder, error) {
 	doc := DocumentService{repos: s.repos, tenantID: s.tenantID}
