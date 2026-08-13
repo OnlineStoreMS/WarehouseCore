@@ -1230,7 +1230,7 @@ func (h *Handlers) ListSuppliers(c *gin.Context) {
 		response.Fail(c, http.StatusBadGateway, "supplycore 未配置")
 		return
 	}
-	list, total, err := h.SC.ListSuppliers(c.Request.Context(), c.GetHeader("Authorization"), c.Query("keyword"), page, pageSize)
+	list, total, err := h.SC.ListSuppliers(c.Request.Context(), authcontext.AuthorizationHeader(c), c.Query("keyword"), page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusBadGateway, err.Error())
 		return
@@ -1245,7 +1245,7 @@ func (h *Handlers) ListPimProducts(c *gin.Context) {
 		response.Fail(c, http.StatusBadGateway, "productcore 未配置")
 		return
 	}
-	list, total, err := h.PC.ListProducts(c.Request.Context(), c.GetHeader("Authorization"), c.Query("keyword"), page, pageSize)
+	list, total, err := h.PC.ListProducts(c.Request.Context(), authcontext.AuthorizationHeader(c), c.Query("keyword"), page, pageSize)
 	if err != nil {
 		response.Fail(c, http.StatusBadGateway, err.Error())
 		return
@@ -1264,7 +1264,7 @@ func (h *Handlers) GetPimProductSkus(c *gin.Context) {
 		response.Fail(c, http.StatusBadGateway, "productcore 未配置")
 		return
 	}
-	item, err := h.PC.GetProductSkus(c.Request.Context(), c.GetHeader("Authorization"), id)
+	item, err := h.PC.GetProductSkus(c.Request.Context(), authcontext.AuthorizationHeader(c), id)
 	if err != nil {
 		response.Fail(c, http.StatusBadGateway, err.Error())
 		return

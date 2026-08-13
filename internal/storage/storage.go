@@ -16,12 +16,15 @@ import (
 
 type Storage interface {
 	Upload(file *multipart.FileHeader, subdir string) (string, error)
+	ResolvePublicURL(stored string) string
+	ResolvePublicURLList(stored string) string
 }
 
 type LocalStorage struct {
-	baseDir string
-	baseURL string
-	prefix  string
+	baseDir  string
+	baseURL  string
+	prefix   string
+	resolver *PublicURLResolver
 }
 
 func NewLocal(cfg *config.StorageConfig) (*LocalStorage, error) {
@@ -30,9 +33,10 @@ func NewLocal(cfg *config.StorageConfig) (*LocalStorage, error) {
 		return nil, err
 	}
 	return &LocalStorage{
-		baseDir: base,
-		baseURL: strings.TrimRight(cfg.PublicBaseURL, "/"),
-		prefix:  cfg.Prefix,
+		baseDir:  base,
+		baseURL:  strings.TrimRight(cfg.PublicBaseURL, "/"),
+		prefix:   cfg.Prefix,
+		resolver: NewPublicURLResolver(cfg),
 	}, nil
 }
 
@@ -60,6 +64,14 @@ func (s *LocalStorage) Upload(file *multipart.FileHeader, subdir string) (string
 	}
 	urlPath := strings.ReplaceAll(filepath.Join(s.prefix, rel), "\\", "/")
 	return s.baseURL + "/" + urlPath, nil
+}
+
+func (s *LocalStorage) ResolvePublicURL(stored string) string {
+	return s.resolver.Resolve(stored)
+}
+
+func (s *LocalStorage) ResolvePublicURLList(stored string) string {
+	return s.resolver.ResolveList(stored)
 }
 
 func New(cfg *config.StorageConfig) (Storage, error) {

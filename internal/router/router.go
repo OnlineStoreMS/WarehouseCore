@@ -36,9 +36,9 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	}
 
 	repos := repo.New(db)
-	masterSvc := service.NewMasterService(repos)
+	masterSvc := service.NewMasterService(repos, store)
 	docSvc := service.NewDocumentService(repos)
-	querySvc := service.NewQueryService(repos)
+	querySvc := service.NewQueryService(repos, store)
 	integSvc := service.NewIntegrationService(repos)
 	scClient := supplycore.NewClient(cfg.Integrations.SupplyCoreAPIURL)
 	pcClient := productcore.NewClient(cfg.Integrations.ProductCoreAPIURL)

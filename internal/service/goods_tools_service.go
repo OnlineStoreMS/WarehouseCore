@@ -136,6 +136,7 @@ func (s *MasterService) GetSkuByCode(skuCode string) (*dto.SkuListRow, error) {
 	if err != nil {
 		return nil, mapNotFound(err)
 	}
+	s.rewriteSkuListRow(&row)
 	return &row, nil
 }
 

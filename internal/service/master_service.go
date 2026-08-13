@@ -10,25 +10,52 @@ import (
 	"warehousecore/internal/dto"
 	"warehousecore/internal/model"
 	"warehousecore/internal/repo"
+	"warehousecore/internal/storage"
 
 	"gorm.io/gorm"
 )
 
 type MasterService struct {
 	repos    *repo.Repos
+	store    storage.Storage
 	tenantID uint64
 }
 
-func NewMasterService(repos *repo.Repos) *MasterService {
-	return &MasterService{repos: repos}
+func NewMasterService(repos *repo.Repos, store storage.Storage) *MasterService {
+	return &MasterService{repos: repos, store: store}
 }
 
 func (s *MasterService) ForTenant(tenantID uint64) *MasterService {
-	return &MasterService{repos: s.repos, tenantID: repo.NormalizeTenantID(tenantID)}
+	return &MasterService{repos: s.repos, store: s.store, tenantID: repo.NormalizeTenantID(tenantID)}
 }
 
 func (s *MasterService) db() *gorm.DB {
 	return s.repos.ForTenant(s.tenantID)
+}
+
+func (s *MasterService) rewriteProductURLs(item *model.InvProduct) {
+	if item == nil || s.store == nil {
+		return
+	}
+	item.Pic = s.store.ResolvePublicURL(item.Pic)
+	item.AlbumPics = s.store.ResolvePublicURLList(item.AlbumPics)
+	for i := range item.Skus {
+		item.Skus[i].Pic = s.store.ResolvePublicURL(item.Skus[i].Pic)
+	}
+}
+
+func (s *MasterService) rewriteSkuURLs(item *model.InvSku) {
+	if item == nil || s.store == nil {
+		return
+	}
+	item.Pic = s.store.ResolvePublicURL(item.Pic)
+}
+
+func (s *MasterService) rewriteSkuListRow(row *dto.SkuListRow) {
+	if row == nil || s.store == nil {
+		return
+	}
+	row.Pic = s.store.ResolvePublicURL(row.Pic)
 }
 
 // ── Categories ──
@@ -174,7 +201,13 @@ func (s *MasterService) ListProducts(keyword string, categoryID uint64, uncatego
 	}).Preload("Descriptions", func(db *gorm.DB) *gorm.DB {
 		return db.Order("sort asc, id asc")
 	}).Order("id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&list).Error
-	return list, total, err
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range list {
+		s.rewriteProductURLs(&list[i])
+	}
+	return list, total, nil
 }
 
 func (s *MasterService) GetProduct(id uint64) (*model.InvProduct, error) {
@@ -186,6 +219,7 @@ func (s *MasterService) GetProduct(id uint64) (*model.InvProduct, error) {
 	}).First(&item, id).Error; err != nil {
 		return nil, mapNotFound(err)
 	}
+	s.rewriteProductURLs(&item)
 	return &item, nil
 }
 
@@ -682,7 +716,13 @@ func (s *MasterService) ListSkus(keyword, productType string, categoryID uint64,
 	}
 	var list []dto.SkuListRow
 	err := q.Order("s.id desc").Offset((page - 1) * pageSize).Limit(pageSize).Scan(&list).Error
-	return list, total, err
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range list {
+		s.rewriteSkuListRow(&list[i])
+	}
+	return list, total, nil
 }
 
 func (s *MasterService) GetSku(id uint64) (*model.InvSku, error) {
@@ -690,6 +730,7 @@ func (s *MasterService) GetSku(id uint64) (*model.InvSku, error) {
 	if err := s.db().First(&item, id).Error; err != nil {
 		return nil, mapNotFound(err)
 	}
+	s.rewriteSkuURLs(&item)
 	return &item, nil
 }
 

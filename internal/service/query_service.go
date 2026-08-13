@@ -5,21 +5,23 @@ import (
 
 	"warehousecore/internal/dto"
 	"warehousecore/internal/repo"
+	"warehousecore/internal/storage"
 
 	"gorm.io/gorm"
 )
 
 type QueryService struct {
 	repos    *repo.Repos
+	store    storage.Storage
 	tenantID uint64
 }
 
-func NewQueryService(repos *repo.Repos) *QueryService {
-	return &QueryService{repos: repos}
+func NewQueryService(repos *repo.Repos, store storage.Storage) *QueryService {
+	return &QueryService{repos: repos, store: store}
 }
 
 func (s *QueryService) ForTenant(tenantID uint64) *QueryService {
-	return &QueryService{repos: s.repos, tenantID: repo.NormalizeTenantID(tenantID)}
+	return &QueryService{repos: s.repos, store: s.store, tenantID: repo.NormalizeTenantID(tenantID)}
 }
 
 func (s *QueryService) QueryBalances(q dto.StockQuery) ([]dto.BalanceRow, int64, error) {
@@ -81,6 +83,9 @@ func (s *QueryService) QueryBalances(q dto.StockQuery) ([]dto.BalanceRow, int64,
 			list[i].UnitCost = list[i].LastCost
 		}
 		list[i].StockAmount = list[i].OnHand * list[i].UnitCost
+		if s.store != nil {
+			list[i].Pic = s.store.ResolvePublicURL(list[i].Pic)
+		}
 	}
 	return list, total, nil
 }
