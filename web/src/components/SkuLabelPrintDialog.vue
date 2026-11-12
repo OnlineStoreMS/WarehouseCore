@@ -215,7 +215,7 @@ function doPrint() {
     </div>
 
     <p class="tip">
-      可直接修改下方「配货名称」，打印与预览都会用修改后的文案；不影响商品原始数据。标签上只有条形码和配货名称，配货名称过长会自动缩小字号。
+      可直接修改下方「配货名称」，打印与预览都会用修改后的文案；不影响商品原始数据。标签从上到下是条形码、SKU 编码、配货名称，配货名称过长会自动缩小字号。
     </p>
 
     <el-table :data="rows" border size="small" max-height="280" class="edit-table">
@@ -246,6 +246,7 @@ function doPrint() {
       >
         <div class="preview-inner">
           <div v-if="it.skuCode" class="preview-barcode" v-html="skuBarcodeSvg(it.skuCode)" />
+          <div class="preview-code">{{ it.skuCode || '—' }}</div>
           <div class="preview-pick">{{ resolvePickName(it) }}</div>
         </div>
       </div>
@@ -318,6 +319,16 @@ function doPrint() {
   margin: 0 auto;
   display: block;
   shape-rendering: crispEdges;
+}
+.preview-code {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  text-align: center;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  word-break: break-all;
+  line-height: 1.15;
 }
 .preview-pick {
   flex: 1;

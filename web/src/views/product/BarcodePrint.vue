@@ -77,6 +77,11 @@ function openPrint(rows: any[]) {
         <el-table-column prop="pickName" label="拣货名" min-width="160" />
         <el-table-column prop="style1" label="规格1" width="100" />
         <el-table-column prop="status" label="状态" width="90" />
+        <el-table-column label="操作" width="110" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" :icon="Printer" @click="openPrint([row])">打印标签</el-button>
+          </template>
+        </el-table-column>
       </el-table>
       <el-pagination
         class="pager"

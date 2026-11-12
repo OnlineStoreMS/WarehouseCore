@@ -122,9 +122,10 @@ function labelHtml(item: SkuLabelItem, size: LabelSize, tone: LayoutTone): strin
   const pickRaw = resolvePickName(item)
   const pickName = escapeHtml(pickRaw)
   const skuRaw = String(item.skuCode || '').trim()
+  const skuCode = escapeHtml(skuRaw || '—')
   const barcode = skuRaw ? code128Svg(skuRaw) : ''
   const barcodeH = tone === 'compact' ? 8 : tone === 'roomy' ? 16 : 12
-  const pickSize = specFontMm(pickRaw, size, barcodeH + 4)
+  const pickSize = specFontMm(pickRaw, size, barcodeH + 8)
   const barcodeBlock = barcode
     ? `<div class="barcode" style="height:${barcodeH}mm">${barcode}</div>`
     : ''
@@ -132,6 +133,7 @@ function labelHtml(item: SkuLabelItem, size: LabelSize, tone: LayoutTone): strin
   return `<div class="label tone-${tone}" style="width:${size.widthMm}mm;height:${size.heightMm}mm">
   <div class="inner">
     ${barcodeBlock}
+    <div class="sku-code">${skuCode}</div>
     <div class="pick-name" style="font-size:${pickSize}mm">${pickName}</div>
   </div>
 </div>`
@@ -198,6 +200,16 @@ export function buildSkuLabelPrintHtml(
     display: block;
     shape-rendering: crispEdges;
   }
+  .sku-code {
+    flex: 0 0 auto;
+    margin-top: 0.4mm;
+    text-align: center;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-weight: 700;
+    letter-spacing: 0.1mm;
+    word-break: break-all;
+    line-height: 1.15;
+  }
   .pick-name {
     flex: 1 1 auto;
     min-height: 0;
@@ -208,8 +220,11 @@ export function buildSkuLabelPrintHtml(
     overflow: hidden;
     white-space: pre-wrap;
   }
+  .tone-compact .sku-code { font-size: 2.2mm; }
   .tone-compact .pick-name { margin-top: 1.6mm; }
   .tone-compact .inner { padding: 1.2mm 1.6mm 1.4mm; }
+  .tone-normal .sku-code { font-size: 2.6mm; }
+  .tone-roomy .sku-code { font-size: 3.4mm; }
 
   @media screen {
     body {
