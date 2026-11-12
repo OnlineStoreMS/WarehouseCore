@@ -6,9 +6,8 @@ import {
   LABEL_SIZE_PRESETS,
   loadSavedLabelPrefs,
   printSkuLabels,
-  productPinyinInitials,
+  resolvePickName,
   resolvePrintSize,
-  resolveSpecText,
   saveLabelPrefs,
   skuBarcodeSvg,
   type LabelOrientation,
@@ -16,7 +15,7 @@ import {
   type SkuLabelItem,
 } from '../utils/skuLabelPrint'
 
-type EditableRow = SkuLabelItem & { _key: string; _origSpec: string }
+type EditableRow = SkuLabelItem & { _key: string; _origPickName: string }
 
 const props = defineProps<{
   modelValue: boolean
@@ -45,8 +44,7 @@ const printSize = computed(() => resolvePrintSize(size.value, orientation.value)
 const printItems = computed(() =>
   rows.value.map((it) => ({
     skuCode: String(it.skuCode || '').trim(),
-    spec: String(it.spec || '').trim(),
-    productName: it.productName,
+    pickName: String(it.pickName || '').trim(),
     copies: Math.min(Math.max(Number(copies.value) || 1, 1), 99),
   })),
 )
@@ -56,16 +54,16 @@ const totalSheets = computed(() =>
 )
 
 const editedCount = computed(() =>
-  rows.value.filter((r) => String(r.spec || '').trim() !== String(r._origSpec || '').trim()).length,
+  rows.value.filter((r) => String(r.pickName || '').trim() !== String(r._origPickName || '').trim()).length,
 )
 
 function cloneRows(list: SkuLabelItem[]): EditableRow[] {
   return list.map((it, i) => {
-    const spec = String(it.spec || '').trim() || String(it.productName || '').trim()
+    const pickName = String(it.pickName || '').trim()
     return {
       ...it,
-      spec,
-      _origSpec: spec,
+      pickName,
+      _origPickName: pickName,
       _key: `${it.skuCode || ''}-${it.id || ''}-${i}`,
     }
   })
@@ -118,8 +116,8 @@ function onCustomChange() {
 }
 
 function resetSpecs() {
-  rows.value = rows.value.map((r) => ({ ...r, spec: r._origSpec }))
-  ElMessage.success('已恢复原始规格名称')
+  rows.value = rows.value.map((r) => ({ ...r, pickName: r._origPickName }))
+  ElMessage.success('已恢复原始配货名称')
 }
 
 const previewScale = computed(() => {
@@ -134,9 +132,9 @@ function doPrint() {
     ElMessage.warning('没有可打印的 SKU')
     return
   }
-  const emptySpec = printItems.value.filter((it) => !String(it.spec || '').trim())
-  if (emptySpec.length) {
-    ElMessage.warning('请填写规格名称后再打印')
+  const emptyPick = printItems.value.filter((it) => !String(it.pickName || '').trim())
+  if (emptyPick.length) {
+    ElMessage.warning('请填写配货名称后再打印')
     return
   }
   const missing = printItems.value.filter((it) => !String(it.skuCode || '').trim())
@@ -158,7 +156,7 @@ function doPrint() {
 <template>
   <el-dialog
     v-model="visible"
-    title="打印商品规格标签"
+    title="打印条码"
     width="860px"
     destroy-on-close
     append-to-body
@@ -207,35 +205,32 @@ function doPrint() {
         :icon="RefreshLeft"
         :disabled="!editedCount"
         @click="resetSpecs"
-      >恢复规格</el-button>
+      >恢复配货名称</el-button>
       <span class="hint">
         共 {{ rows.length }} 个 SKU · {{ totalSheets }} 张 ·
         {{ printSize.widthMm }}×{{ printSize.heightMm }} mm
         （{{ orientation === 'landscape' ? '横向' : '纵向' }}）
-        <template v-if="editedCount"> · 已改 {{ editedCount }} 条规格</template>
+        <template v-if="editedCount"> · 已改 {{ editedCount }} 条配货名称</template>
       </span>
     </div>
 
     <p class="tip">
-      可直接修改下方「规格名称」，打印与预览都会用修改后的文案；不影响商品原始数据。标签上方是库存 SKU 条形码，条码下直接印 SKU 编码，再往下是规格名称（过长会自动缩小字号）。右下角是商品名称拼音首字母。
+      可直接修改下方「配货名称」，打印与预览都会用修改后的文案；不影响商品原始数据。标签上只有条形码和配货名称，配货名称过长会自动缩小字号。
     </p>
 
     <el-table :data="rows" border size="small" max-height="280" class="edit-table">
-      <el-table-column label="库存SKU" prop="skuCode" width="180" show-overflow-tooltip />
-      <el-table-column label="规格名称" min-width="260">
+      <el-table-column label="SKU编码" prop="skuCode" width="180" show-overflow-tooltip />
+      <el-table-column label="配货名称" min-width="260">
         <template #default="{ row }">
           <el-input
-            v-model="row.spec"
+            v-model="row.pickName"
             type="textarea"
             :autosize="{ minRows: 1, maxRows: 3 }"
             maxlength="200"
             show-word-limit
-            placeholder="标签上显示的规格名称"
+            placeholder="标签上显示的配货名称"
           />
         </template>
-      </el-table-column>
-      <el-table-column label="商品名称" prop="productName" min-width="140" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.productName || '—' }}</template>
       </el-table-column>
     </el-table>
 
@@ -251,11 +246,7 @@ function doPrint() {
       >
         <div class="preview-inner">
           <div v-if="it.skuCode" class="preview-barcode" v-html="skuBarcodeSvg(it.skuCode)" />
-          <div class="preview-code">{{ it.skuCode || '—' }}</div>
-          <div class="preview-spec">{{ resolveSpecText(it) }}</div>
-          <div v-if="productPinyinInitials(it.productName || '')" class="preview-mark">
-            {{ productPinyinInitials(it.productName || '') }}
-          </div>
+          <div class="preview-pick">{{ resolvePickName(it) }}</div>
         </div>
       </div>
       <div v-if="printItems.length > 6" class="more">… 另有 {{ printItems.length - 6 }} 个 SKU</div>
@@ -328,37 +319,16 @@ function doPrint() {
   display: block;
   shape-rendering: crispEdges;
 }
-.preview-code {
-  flex: 0 0 auto;
-  margin-top: 2px;
-  text-align: center;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  word-break: break-all;
-  line-height: 1.15;
-}
-.preview-spec {
+.preview-pick {
   flex: 1;
   min-height: 0;
-  margin-top: 14px;
-  padding-bottom: 16px;
+  margin-top: 8px;
   font-weight: 700;
   font-size: 13px;
   line-height: 1.25;
   word-break: break-word;
   white-space: pre-wrap;
   overflow: hidden;
-}
-.preview-mark {
-  position: absolute;
-  right: 6px;
-  bottom: 4px;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  line-height: 1;
 }
 .more {
   align-self: center;

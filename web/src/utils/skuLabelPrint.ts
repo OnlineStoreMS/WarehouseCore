@@ -1,14 +1,12 @@
-/** 库存 SKU 规格标签：尺寸预设与打印排版（对齐售后商品规格标签） */
+/** 库存 SKU 条码标签：尺寸预设与打印排版 */
 
-import { pinyin } from 'pinyin-pro'
 import { code128Svg } from './code128'
 
 export type SkuLabelItem = {
   id?: number
   skuCode: string
-  /** 标签上的规格名称，默认为配货名称 */
-  spec: string
-  productName?: string
+  /** 标签上的配货名称 */
+  pickName: string
   copies?: number
 }
 
@@ -77,23 +75,8 @@ export function skuBarcodeSvg(skuCode: string): string {
   return code128Svg(skuCode)
 }
 
-/** 商品名拼音首字母，小写。例：山地自行车 → sdzxc */
-export function productPinyinInitials(name: string): string {
-  const raw = String(name || '').trim()
-  if (!raw) return ''
-  const parts = pinyin(raw, {
-    pattern: 'first',
-    toneType: 'none',
-    type: 'array',
-    nonZh: 'consecutive',
-  })
-  return parts.join('').toLowerCase().replace(/[^a-z0-9]/g, '')
-}
-
-export function resolveSpecText(item: SkuLabelItem): string {
-  const spec = String(item.spec || '').trim()
-  if (spec) return spec
-  return String(item.productName || '').trim() || '（无规格）'
+export function resolvePickName(item: SkuLabelItem): string {
+  return String(item.pickName || '').trim() || '（无配货名称）'
 }
 
 type LayoutTone = 'compact' | 'normal' | 'roomy'
@@ -136,26 +119,20 @@ function specFontMm(spec: string, size: LabelSize, reservedMm: number): number {
 }
 
 function labelHtml(item: SkuLabelItem, size: LabelSize, tone: LayoutTone): string {
-  const specRaw = resolveSpecText(item)
-  const spec = escapeHtml(specRaw)
+  const pickRaw = resolvePickName(item)
+  const pickName = escapeHtml(pickRaw)
   const skuRaw = String(item.skuCode || '').trim()
-  const skuCode = escapeHtml(skuRaw || '—')
   const barcode = skuRaw ? code128Svg(skuRaw) : ''
   const barcodeH = tone === 'compact' ? 8 : tone === 'roomy' ? 16 : 12
-  const reserved = barcodeH + 10
-  const specSize = specFontMm(specRaw, size, reserved)
+  const pickSize = specFontMm(pickRaw, size, barcodeH + 4)
   const barcodeBlock = barcode
     ? `<div class="barcode" style="height:${barcodeH}mm">${barcode}</div>`
     : ''
-  const mark = escapeHtml(productPinyinInitials(String(item.productName || '')))
-  const markBlock = mark ? `<div class="shop-mark">${mark}</div>` : ''
 
   return `<div class="label tone-${tone}" style="width:${size.widthMm}mm;height:${size.heightMm}mm">
   <div class="inner">
     ${barcodeBlock}
-    <div class="order-no">${skuCode}</div>
-    <div class="spec" style="font-size:${specSize}mm">${spec}</div>
-    ${markBlock}
+    <div class="pick-name" style="font-size:${pickSize}mm">${pickName}</div>
   </div>
 </div>`
 }
@@ -173,7 +150,7 @@ export function buildSkuLabelPrintHtml(
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<title>商品规格标签</title>
+<title>条码打印</title>
 <style>
   @page {
     size: ${printSize.widthMm}mm ${printSize.heightMm}mm;
@@ -221,44 +198,18 @@ export function buildSkuLabelPrintHtml(
     display: block;
     shape-rendering: crispEdges;
   }
-  .order-no {
-    flex: 0 0 auto;
-    margin-top: 0.4mm;
-    text-align: center;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-weight: 700;
-    letter-spacing: 0.1mm;
-    word-break: break-all;
-    line-height: 1.15;
-  }
-  .spec {
+  .pick-name {
     flex: 1 1 auto;
     min-height: 0;
-    margin-top: 3.6mm;
-    padding-bottom: 3.2mm;
+    margin-top: 2.4mm;
     font-weight: 700;
     line-height: 1.22;
     word-break: break-word;
     overflow: hidden;
     white-space: pre-wrap;
   }
-  .shop-mark {
-    position: absolute;
-    right: 1.4mm;
-    bottom: 1.2mm;
-    font-size: 2.4mm;
-    font-weight: 700;
-    letter-spacing: 0.15mm;
-    line-height: 1;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  }
-  .tone-compact .shop-mark { font-size: 2mm; right: 1mm; bottom: 0.8mm; }
-  .tone-compact .spec { margin-top: 2.4mm; }
-
-  .tone-compact .order-no { font-size: 2.2mm; }
+  .tone-compact .pick-name { margin-top: 1.6mm; }
   .tone-compact .inner { padding: 1.2mm 1.6mm 1.4mm; }
-  .tone-normal .order-no { font-size: 2.6mm; }
-  .tone-roomy .order-no { font-size: 3.4mm; }
 
   @media screen {
     body {
