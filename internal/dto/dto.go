@@ -458,6 +458,7 @@ type BalanceRow struct {
 	CategoryName     string    `json:"categoryName"`
 	SkuStatus        string    `json:"skuStatus"`
 	OnHand           float64   `json:"onHand"`
+	PendingQty       float64   `json:"pendingQty"`
 	ReservedQty      float64   `json:"reservedQty"` // 一期无占用，固定 0
 	AvailableQty     float64   `json:"availableQty"`
 	StockAmount      float64   `json:"stockAmount"`

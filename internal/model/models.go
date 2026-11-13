@@ -236,7 +236,12 @@ const (
 	WarehouseTypeCentral = "central"
 	WarehouseTypeReturn  = "return"
 	WarehouseTypeTransit = "transit"
-	DefaultLocationCode  = "DEFAULT"
+	DefaultLocationCode = "DEFAULT"
+	StageLocationCode   = "STAGE"
+	LocStatusOff        = 0
+	LocStatusOn         = 1
+	LocStatusLocked     = 2
+	LocStatusFull       = 3
 )
 
 type Warehouse struct {
@@ -305,6 +310,9 @@ type InvBalance struct {
 	LocationID  uint64    `gorm:"index;not null" json:"locationId"`
 	InvSkuID    uint64    `gorm:"index;not null" json:"invSkuId"`
 	OnHand      float64   `gorm:"type:numeric(14,4);default:0" json:"onHand"`
+	PendingQty  float64   `gorm:"type:numeric(14,4);default:0" json:"pendingQty"`
+	LastBatch   string    `gorm:"size:64" json:"lastBatch"`
+	LastExpiry  string    `gorm:"size:32" json:"lastExpiry"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
@@ -639,3 +647,67 @@ type InvProfitTrial struct {
 }
 
 func (InvProfitTrial) TableName() string { return "inv_profit_trials" }
+
+// 收货单。实收确认后数量进待上架，上架扫码绑定库位后才变成可用库存。
+type ReceiptOrder struct {
+	ID           uint64    `gorm:"primaryKey" json:"id"`
+	TenantID     uint64    `gorm:"index;not null" json:"tenantId"`
+	DocNo        string    `gorm:"size:32;not null" json:"docNo"`
+	WarehouseID  uint64    `gorm:"index;not null" json:"warehouseId"`
+	LogisticsNo  string    `gorm:"size:64;index" json:"logisticsNo"`
+	PoNo         string    `gorm:"size:32" json:"poNo"`
+	PoID         uint64    `json:"poId"`
+	SupplierName string    `gorm:"size:128" json:"supplierName"`
+	Status       string    `gorm:"size:16;not null;default:open" json:"status"`
+	Remark       string    `gorm:"type:text" json:"remark"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+func (ReceiptOrder) TableName() string { return "receipt_orders" }
+
+type ReceiptLine struct {
+	ID          uint64  `gorm:"primaryKey" json:"id"`
+	TenantID    uint64  `gorm:"index;not null" json:"tenantId"`
+	ReceiptID   uint64  `gorm:"index;not null" json:"receiptId"`
+	InvSkuID    uint64  `gorm:"index" json:"invSkuId"`
+	SkuCode     string  `gorm:"size:64" json:"skuCode"`
+	ProductName string  `gorm:"size:256" json:"productName"`
+	BatchNo     string  `gorm:"size:64" json:"batchNo"`
+	Expiry      string  `gorm:"size:32" json:"expiry"`
+	ExpectedQty float64 `gorm:"type:numeric(14,4);default:0" json:"expectedQty"`
+	ReceivedQty float64 `gorm:"type:numeric(14,4);default:0" json:"receivedQty"`
+}
+
+func (ReceiptLine) TableName() string { return "receipt_lines" }
+
+type ReceiptVariance struct {
+	ID        uint64    `gorm:"primaryKey" json:"id"`
+	TenantID  uint64    `gorm:"index;not null" json:"tenantId"`
+	ReceiptID uint64    `gorm:"index;not null" json:"receiptId"`
+	InvSkuID  uint64    `json:"invSkuId"`
+	SkuCode   string    `gorm:"size:64" json:"skuCode"`
+	Reason    string    `gorm:"size:16" json:"reason"`
+	Qty       float64   `gorm:"type:numeric(14,4);default:0" json:"qty"`
+	Note      string    `gorm:"size:256" json:"note"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+func (ReceiptVariance) TableName() string { return "receipt_variances" }
+
+type PutawayTask struct {
+	ID          uint64  `gorm:"primaryKey" json:"id"`
+	TenantID    uint64  `gorm:"index;not null" json:"tenantId"`
+	ReceiptID   uint64  `gorm:"index;not null" json:"receiptId"`
+	WarehouseID uint64  `gorm:"index;not null" json:"warehouseId"`
+	InvSkuID    uint64  `gorm:"index;not null" json:"invSkuId"`
+	SkuCode     string  `gorm:"size:64" json:"skuCode"`
+	BatchNo     string  `gorm:"size:64" json:"batchNo"`
+	Expiry      string  `gorm:"size:32" json:"expiry"`
+	SuggestCode string  `gorm:"size:64" json:"suggestCode"`
+	Qty         float64 `gorm:"type:numeric(14,4);default:0" json:"qty"`
+	DoneQty     float64 `gorm:"type:numeric(14,4);default:0" json:"doneQty"`
+	Status      string  `gorm:"size:16;not null;default:open" json:"status"`
+}
+
+func (PutawayTask) TableName() string { return "putaway_tasks" }

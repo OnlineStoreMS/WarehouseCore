@@ -112,3 +112,60 @@ func (c *Client) ListSuppliers(ctx context.Context, bearerToken, keyword string,
 	}
 	return pageData.List, pageData.Total, nil
 }
+
+type ArrivalLine struct {
+	SkuCode     string `json:"skuCode"`
+	ProductName string `json:"productName"`
+	Qty         int    `json:"qty"`
+}
+
+type ArrivalNotice struct {
+	PoID         uint64        `json:"poId"`
+	PoNo         string        `json:"poNo"`
+	SupplierName string        `json:"supplierName"`
+	WarehouseID  uint64        `json:"warehouseId"`
+	TrackingNo   string        `json:"trackingNo"`
+	Lines        []ArrivalLine `json:"lines"`
+}
+
+func (c *Client) LookupArrival(ctx context.Context, bearerToken, trackingNo string) (*ArrivalNotice, error) {
+	if c == nil || c.baseURL == "" {
+		return nil, fmt.Errorf("supplycore 未配置")
+	}
+	q := url.Values{}
+	q.Set("trackingNo", strings.TrimSpace(trackingNo))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/api/v1/admin/arrivals/by-tracking?"+q.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	if bearerToken != "" {
+		req.Header.Set("Authorization", bearerToken)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("supplycore http %d", resp.StatusCode)
+	}
+	var wrapped apiBody
+	if err := json.Unmarshal(body, &wrapped); err != nil {
+		return nil, err
+	}
+	if wrapped.Code != 200 {
+		return nil, fmt.Errorf("%s", wrapped.Message)
+	}
+	var notice ArrivalNotice
+	if err := json.Unmarshal(wrapped.Data, &notice); err != nil {
+		return nil, err
+	}
+	return &notice, nil
+}

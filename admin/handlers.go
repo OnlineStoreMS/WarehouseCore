@@ -21,6 +21,7 @@ type Handlers struct {
 	Doc    *service.DocumentService
 	Query  *service.QueryService
 	Integ  *service.IntegrationService
+	Flow   *service.FlowService
 	SC     *supplycore.Client
 	PC     *productcore.Client
 }
@@ -30,10 +31,11 @@ func NewHandlers(
 	doc *service.DocumentService,
 	query *service.QueryService,
 	integ *service.IntegrationService,
+	flow *service.FlowService,
 	sc *supplycore.Client,
 	pc *productcore.Client,
 ) *Handlers {
-	return &Handlers{Master: master, Doc: doc, Query: query, Integ: integ, SC: sc, PC: pc}
+	return &Handlers{Master: master, Doc: doc, Query: query, Integ: integ, Flow: flow, SC: sc, PC: pc}
 }
 
 func (h *Handlers) master(c *gin.Context) *service.MasterService {
@@ -47,6 +49,9 @@ func (h *Handlers) query(c *gin.Context) *service.QueryService {
 }
 func (h *Handlers) integ(c *gin.Context) *service.IntegrationService {
 	return h.Integ.ForTenant(authcontext.TenantID(c))
+}
+func (h *Handlers) flow(c *gin.Context) *service.FlowService {
+	return h.Flow.ForTenant(authcontext.TenantID(c))
 }
 
 // ── Categories ──

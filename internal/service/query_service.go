@@ -28,7 +28,7 @@ func (s *QueryService) QueryBalances(q dto.StockQuery) ([]dto.BalanceRow, int64,
 	db := s.repos.DB.Table("inv_balances AS b").
 		Select(`b.id, b.warehouse_id, w.name AS warehouse_name, b.location_id, l.code AS location_code,
 			b.inv_sku_id, s.sku_code, COALESCE(s.pic,'') AS pic, s.pick_name, p.name AS product_name,
-			COALESCE(c.name,'') AS category_name, s.status AS sku_status, b.on_hand,
+			COALESCE(c.name,'') AS category_name, s.status AS sku_status, b.on_hand, b.pending_qty,
 			s.retail_price, s.last_purchase_price AS last_cost, s.last_purchase_price AS unit_cost,
 			s.min_purchase_price, s.weight_g, COALESCE(p.brand,'') AS brand,
 			COALESCE(p.spec_class,'') AS spec_class, COALESCE(p.model,'') AS model,

@@ -66,6 +66,10 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.InvScoreWeightRule{},
 		&model.InvOrderQtyCoeff{},
 		&model.InvProfitTrial{},
+		&model.ReceiptOrder{},
+		&model.ReceiptLine{},
+		&model.ReceiptVariance{},
+		&model.PutawayTask{},
 	); err != nil {
 		return err
 	}
@@ -95,6 +99,8 @@ func ensureIndexes(db *gorm.DB) error {
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_pim_map_inv ON pim_sku_mappings (tenant_id, inv_sku_id);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_pim_map_pim ON pim_sku_mappings (tenant_id, pim_sku_id);
 			ALTER TABLE warehouse_locations DROP COLUMN IF EXISTS aisle;
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_receipt_tenant_no ON receipt_orders (tenant_id, doc_no);
+			CREATE INDEX IF NOT EXISTS idx_receipt_logistics ON receipt_orders (tenant_id, logistics_no);
 		`).Error
 	default:
 		return nil

@@ -42,7 +42,8 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	integSvc := service.NewIntegrationService(repos)
 	scClient := supplycore.NewClient(cfg.Integrations.SupplyCoreAPIURL)
 	pcClient := productcore.NewClient(cfg.Integrations.ProductCoreAPIURL)
-	h := admin.NewHandlers(masterSvc, docSvc, querySvc, integSvc, scClient, pcClient)
+	flowSvc := service.NewFlowService(repos, scClient)
+	h := admin.NewHandlers(masterSvc, docSvc, querySvc, integSvc, flowSvc, scClient, pcClient)
 	uploadH := admin.NewUploadHandler(store)
 	photoH := admin.NewPhotoUploadHandler(store)
 

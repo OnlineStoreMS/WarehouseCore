@@ -113,6 +113,14 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	// VMS suppliers (proxy SupplyCore)
 	g.GET("/suppliers", h.ListSuppliers)
 
+	g.GET("/pda/lookup", h.PdaLookup)
+	g.POST("/receipts", h.CreateReceipt)
+	g.POST("/receipts/:id/scan", h.ScanReceipt)
+	g.POST("/receipts/:id/variances", h.MarkReceiptVariance)
+	g.POST("/receipts/:id/confirm", h.ConfirmReceipt)
+	g.POST("/putaways/:id/place", h.PlacePutaway)
+	g.POST("/stock/moves", h.MoveStock)
+
 	// 商品其它工具（对齐普源）
 	g.GET("/goods-fee-settings", h.GetGoodsFeeSettings)
 	g.PUT("/goods-fee-settings", h.SaveGoodsFeeSettings)
