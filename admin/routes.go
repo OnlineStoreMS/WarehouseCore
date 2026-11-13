@@ -114,6 +114,7 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.GET("/suppliers", h.ListSuppliers)
 
 	g.GET("/pda/lookup", h.PdaLookup)
+	g.GET("/pda/tasks", h.PdaTasks)
 	g.POST("/receipts", h.CreateReceipt)
 	g.POST("/receipts/:id/scan", h.ScanReceipt)
 	g.POST("/receipts/:id/variances", h.MarkReceiptVariance)

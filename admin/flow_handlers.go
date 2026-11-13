@@ -10,6 +10,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func (h *Handlers) PdaTasks(c *gin.Context) {
+	board, err := h.flow(c).Tasks(c.Query("bucket"), c.Query("keyword"))
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, board)
+}
+
 func (h *Handlers) PdaLookup(c *gin.Context) {
 	warehouseID, _ := strconv.ParseUint(c.Query("warehouseId"), 10, 64)
 	hit, err := h.flow(c).Lookup(c.Request.Context(), c.GetHeader("Authorization"), c.Query("code"), warehouseID)
