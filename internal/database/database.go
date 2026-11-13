@@ -70,6 +70,10 @@ func AutoMigrate(db *gorm.DB) error {
 		&model.ReceiptLine{},
 		&model.ReceiptVariance{},
 		&model.PutawayTask{},
+		&model.PickOrder{},
+		&model.PickLine{},
+		&model.ReturnReceipt{},
+		&model.ReturnLine{},
 	); err != nil {
 		return err
 	}
@@ -101,6 +105,10 @@ func ensureIndexes(db *gorm.DB) error {
 			ALTER TABLE warehouse_locations DROP COLUMN IF EXISTS aisle;
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_receipt_tenant_no ON receipt_orders (tenant_id, doc_no);
 			CREATE INDEX IF NOT EXISTS idx_receipt_logistics ON receipt_orders (tenant_id, logistics_no);
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_pick_tenant_no ON pick_orders (tenant_id, doc_no);
+			CREATE INDEX IF NOT EXISTS idx_pick_order_no ON pick_orders (tenant_id, order_no);
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_return_tenant_no ON return_receipts (tenant_id, doc_no);
+			CREATE INDEX IF NOT EXISTS idx_return_logistics ON return_receipts (tenant_id, logistics_no);
 		`).Error
 	default:
 		return nil

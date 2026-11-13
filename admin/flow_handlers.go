@@ -121,6 +121,226 @@ func (h *Handlers) PlacePutaway(c *gin.Context) {
 	response.OK(c, hit)
 }
 
+func (h *Handlers) ScanPick(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		LocationCode string  `json:"locationCode"`
+		Barcode      string  `json:"barcode"`
+		Qty          float64 `json:"qty"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).ScanPick(id, in.LocationCode, in.Barcode, in.Qty)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) ReviewPick(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		Barcode string `json:"barcode"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).ReviewPick(id, in.Barcode)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) HandoverPick(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		MailNo   string `json:"mailNo"`
+		PhotoURL string `json:"photoUrl"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).HandoverPick(id, in.MailNo, in.PhotoURL)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) RecheckPick(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	hit, err := h.flow(c).RecheckPick(id)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) GradeReturn(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		Barcode string `json:"barcode"`
+		Grade   string `json:"grade"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).GradeReturn(id, in.Barcode, in.Grade)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) PlaceReturn(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		LocationCode string  `json:"locationCode"`
+		Barcode      string  `json:"barcode"`
+		Grade        string  `json:"grade"`
+		Qty          float64 `json:"qty"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).PlaceReturn(id, in.LocationCode, in.Barcode, in.Grade, in.Qty)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) StartCount(c *gin.Context) {
+	var in struct {
+		LocationCode string `json:"locationCode"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).StartCount(in.LocationCode)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) ScanCount(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		Barcode string  `json:"barcode"`
+		Qty     float64 `json:"qty"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).ScanCount(id, in.Barcode, in.Qty)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) SubmitCount(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	hit, err := h.flow(c).SubmitCount(id)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) ScanPdaTransfer(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		LocationCode string  `json:"locationCode"`
+		Barcode      string  `json:"barcode"`
+		Inbound      bool    `json:"inbound"`
+		Qty          float64 `json:"qty"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		response.Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	hit, err := h.flow(c).ScanTransfer(id, in.LocationCode, in.Barcode, in.Inbound, in.Qty)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
+func (h *Handlers) ConfirmPdaTransfer(c *gin.Context) {
+	id, err := httputil.ParseID(c)
+	if err != nil {
+		response.Fail(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in struct {
+		Inbound bool `json:"inbound"`
+	}
+	_ = c.ShouldBindJSON(&in)
+	hit, err := h.flow(c).ConfirmTransfer(id, in.Inbound)
+	if err != nil {
+		httputil.HandleServiceError(c, err)
+		return
+	}
+	response.OK(c, hit)
+}
+
 func (h *Handlers) MoveStock(c *gin.Context) {
 	var in struct {
 		FromCode string  `json:"fromCode"`

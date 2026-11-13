@@ -120,6 +120,17 @@ func RegisterRoutes(g *gin.RouterGroup, h *Handlers) {
 	g.POST("/receipts/:id/confirm", h.ConfirmReceipt)
 	g.POST("/putaways/:id/place", h.PlacePutaway)
 	g.POST("/stock/moves", h.MoveStock)
+	g.POST("/picks/:id/scan", h.ScanPick)
+	g.POST("/picks/:id/review", h.ReviewPick)
+	g.POST("/picks/:id/handover", h.HandoverPick)
+	g.POST("/picks/:id/recheck", h.RecheckPick)
+	g.POST("/returns/:id/grade", h.GradeReturn)
+	g.POST("/returns/:id/place", h.PlaceReturn)
+	g.POST("/counts/start", h.StartCount)
+	g.POST("/counts/:id/scan", h.ScanCount)
+	g.POST("/counts/:id/submit", h.SubmitCount)
+	g.POST("/pda-transfers/:id/scan", h.ScanPdaTransfer)
+	g.POST("/pda-transfers/:id/confirm", h.ConfirmPdaTransfer)
 
 	// 商品其它工具（对齐普源）
 	g.GET("/goods-fee-settings", h.GetGoodsFeeSettings)

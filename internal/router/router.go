@@ -6,6 +6,7 @@ import (
 	"warehousecore/admin"
 	adminmw "warehousecore/admin/middleware"
 	"warehousecore/internal/config"
+	"warehousecore/internal/integrations/peers"
 	"warehousecore/internal/integrations/productcore"
 	"warehousecore/internal/integrations/supplycore"
 	jwtmgr "warehousecore/internal/pkg/jwt"
@@ -42,7 +43,8 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	integSvc := service.NewIntegrationService(repos)
 	scClient := supplycore.NewClient(cfg.Integrations.SupplyCoreAPIURL)
 	pcClient := productcore.NewClient(cfg.Integrations.ProductCoreAPIURL)
-	flowSvc := service.NewFlowService(repos, scClient)
+	peerClient := peers.New(cfg.Integrations.OrderCoreAPIURL, cfg.Integrations.AfterSalesCoreAPIURL, cfg.Integrations.ShippingCoreAPIURL, cfg.Integrations.SelfCoreAPIURL)
+	flowSvc := service.NewFlowService(repos, scClient, peerClient)
 	h := admin.NewHandlers(masterSvc, docSvc, querySvc, integSvc, flowSvc, scClient, pcClient)
 	uploadH := admin.NewUploadHandler(store)
 	photoH := admin.NewPhotoUploadHandler(store)

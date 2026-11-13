@@ -238,6 +238,7 @@ const (
 	WarehouseTypeTransit = "transit"
 	DefaultLocationCode = "DEFAULT"
 	StageLocationCode   = "STAGE"
+	IsolateLocationCode = "ISOLATE"
 	LocStatusOff        = 0
 	LocStatusOn         = 1
 	LocStatusLocked     = 2
@@ -535,13 +536,17 @@ type TransferOrder struct {
 func (TransferOrder) TableName() string { return "transfer_orders" }
 
 type TransferItem struct {
-	ID        uint64  `gorm:"primaryKey" json:"id"`
-	TenantID  uint64  `gorm:"index;not null" json:"tenantId"`
-	OrderID   uint64  `gorm:"index;not null" json:"orderId"`
-	InvSkuID  uint64  `gorm:"index;not null" json:"invSkuId"`
-	Qty       float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
-	Remark    string  `gorm:"size:256" json:"remark"`
-	SkuCode   string  `gorm:"-" json:"skuCode,omitempty"`
+	ID           uint64  `gorm:"primaryKey" json:"id"`
+	TenantID     uint64  `gorm:"index;not null" json:"tenantId"`
+	OrderID      uint64  `gorm:"index;not null" json:"orderId"`
+	InvSkuID     uint64  `gorm:"index;not null" json:"invSkuId"`
+	Qty          float64 `gorm:"type:numeric(14,4);not null" json:"qty"`
+	PickedQty        float64 `gorm:"type:numeric(14,4);default:0" json:"pickedQty"`
+	ReceivedQty      float64 `gorm:"type:numeric(14,4);default:0" json:"receivedQty"`
+	SourceLocationID uint64  `gorm:"default:0" json:"sourceLocationId"`
+	ToLocationID     uint64  `gorm:"default:0" json:"toLocationId"`
+	Remark       string  `gorm:"size:256" json:"remark"`
+	SkuCode      string  `gorm:"-" json:"skuCode,omitempty"`
 	PickName  string  `gorm:"-" json:"pickName,omitempty"`
 	WeightG   float64 `gorm:"-" json:"weightG,omitempty"`
 	UnitCost  float64 `gorm:"-" json:"unitCost,omitempty"`
@@ -711,3 +716,71 @@ type PutawayTask struct {
 }
 
 func (PutawayTask) TableName() string { return "putaway_tasks" }
+
+type PickOrder struct {
+	ID          uint64    `gorm:"primaryKey" json:"id"`
+	TenantID    uint64    `gorm:"index;not null" json:"tenantId"`
+	WarehouseID uint64    `gorm:"index;not null" json:"warehouseId"`
+	DocNo       string    `gorm:"size:32;not null" json:"docNo"`
+	Source      string    `gorm:"size:16" json:"source"`
+	SourceNo    string    `gorm:"size:64;index" json:"sourceNo"`
+	OrderNo     string    `gorm:"size:64;index" json:"orderNo"`
+	Buyer       string    `gorm:"size:128" json:"buyer"`
+	Address     string    `gorm:"size:512" json:"address"`
+	MailNo      string    `gorm:"size:64" json:"mailNo"`
+	PhotoURL    string    `gorm:"size:512" json:"photoUrl"`
+	Status      string    `gorm:"size:16;not null;default:picking" json:"status"`
+	BlockReason string    `gorm:"size:256" json:"blockReason"`
+	Note        string    `gorm:"size:256" json:"note"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+func (PickOrder) TableName() string { return "pick_orders" }
+
+type PickLine struct {
+	ID          uint64  `gorm:"primaryKey" json:"id"`
+	TenantID    uint64  `gorm:"index;not null" json:"tenantId"`
+	PickID      uint64  `gorm:"index;not null" json:"pickId"`
+	InvSkuID    uint64  `gorm:"index" json:"invSkuId"`
+	SkuCode     string  `gorm:"size:64" json:"skuCode"`
+	ProductName string  `gorm:"size:256" json:"productName"`
+	SuggestCode string  `gorm:"size:64" json:"suggestCode"`
+	Qty         float64 `gorm:"type:numeric(14,4);default:0" json:"qty"`
+	PickedQty   float64 `gorm:"type:numeric(14,4);default:0" json:"pickedQty"`
+	CheckedQty  float64 `gorm:"type:numeric(14,4);default:0" json:"checkedQty"`
+}
+
+func (PickLine) TableName() string { return "pick_lines" }
+
+type ReturnReceipt struct {
+	ID           uint64    `gorm:"primaryKey" json:"id"`
+	TenantID     uint64    `gorm:"index;not null" json:"tenantId"`
+	WarehouseID  uint64    `gorm:"index;not null" json:"warehouseId"`
+	DocNo        string    `gorm:"size:32;not null" json:"docNo"`
+	LogisticsNo  string    `gorm:"size:64;index" json:"logisticsNo"`
+	AftersaleNo  string    `gorm:"size:64" json:"aftersaleNo"`
+	OrderNo      string    `gorm:"size:64" json:"orderNo"`
+	Status       string    `gorm:"size:16;not null;default:open" json:"status"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+func (ReturnReceipt) TableName() string { return "return_receipts" }
+
+type ReturnLine struct {
+	ID          uint64  `gorm:"primaryKey" json:"id"`
+	TenantID    uint64  `gorm:"index;not null" json:"tenantId"`
+	ReturnID    uint64  `gorm:"index;not null" json:"returnId"`
+	InvSkuID    uint64  `gorm:"index" json:"invSkuId"`
+	SkuCode     string  `gorm:"size:64" json:"skuCode"`
+	ProductName string  `gorm:"size:256" json:"productName"`
+	ExpectedQty float64 `gorm:"type:numeric(14,4);default:0" json:"expectedQty"`
+	GoodQty     float64 `gorm:"type:numeric(14,4);default:0" json:"goodQty"`
+	DefectQty   float64 `gorm:"type:numeric(14,4);default:0" json:"defectQty"`
+	PlacedGood  float64 `gorm:"type:numeric(14,4);default:0" json:"placedGood"`
+	PlacedDefect float64 `gorm:"type:numeric(14,4);default:0" json:"placedDefect"`
+	SuggestCode string  `gorm:"size:64" json:"suggestCode"`
+}
+
+func (ReturnLine) TableName() string { return "return_lines" }

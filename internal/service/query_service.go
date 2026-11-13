@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"warehousecore/internal/dto"
+	"warehousecore/internal/model"
 	"warehousecore/internal/repo"
 	"warehousecore/internal/storage"
 
@@ -78,7 +79,11 @@ func (s *QueryService) QueryBalances(q dto.StockQuery) ([]dto.BalanceRow, int64,
 	}
 	for i := range list {
 		list[i].ReservedQty = 0
-		list[i].AvailableQty = list[i].OnHand
+		if list[i].LocationCode == model.StageLocationCode || list[i].LocationCode == model.IsolateLocationCode {
+			list[i].AvailableQty = 0
+		} else {
+			list[i].AvailableQty = list[i].OnHand
+		}
 		if list[i].UnitCost == 0 {
 			list[i].UnitCost = list[i].LastCost
 		}

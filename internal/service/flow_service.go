@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"warehousecore/internal/integrations/peers"
 	"warehousecore/internal/integrations/supplycore"
 	"warehousecore/internal/model"
 	"warehousecore/internal/repo"
@@ -17,15 +18,16 @@ import (
 type FlowService struct {
 	repos    *repo.Repos
 	sc       *supplycore.Client
+	peers    *peers.Client
 	tenantID uint64
 }
 
-func NewFlowService(repos *repo.Repos, sc *supplycore.Client) *FlowService {
-	return &FlowService{repos: repos, sc: sc}
+func NewFlowService(repos *repo.Repos, sc *supplycore.Client, peersClient *peers.Client) *FlowService {
+	return &FlowService{repos: repos, sc: sc, peers: peersClient}
 }
 
 func (s *FlowService) ForTenant(tenantID uint64) *FlowService {
-	return &FlowService{repos: s.repos, sc: s.sc, tenantID: repo.NormalizeTenantID(tenantID)}
+	return &FlowService{repos: s.repos, sc: s.sc, peers: s.peers, tenantID: repo.NormalizeTenantID(tenantID)}
 }
 
 type PdaLine struct {
@@ -84,6 +86,10 @@ type PdaHit struct {
 	Message  string       `json:"message,omitempty"`
 	Receipt  *PdaReceipt  `json:"receipt,omitempty"`
 	Stocks   []PdaStock   `json:"stocks,omitempty"`
+	Pick     *PdaPick     `json:"pick,omitempty"`
+	Return   *PdaReturn   `json:"returnDoc,omitempty"`
+	Count    *PdaCount    `json:"count,omitempty"`
+	Transfer *PdaTransfer `json:"transfer,omitempty"`
 }
 
 func (s *FlowService) Lookup(ctx context.Context, bearer, code string, warehouseID uint64) (*PdaHit, error) {
@@ -99,6 +105,9 @@ func (s *FlowService) Lookup(ctx context.Context, bearer, code string, warehouse
 			return nil, err
 		}
 		return &PdaHit{Kind: "receipt", Code: code, Receipt: view}, nil
+	}
+	if hit, err := s.lookupLocalCycle(code); err != nil || hit != nil {
+		return hit, err
 	}
 	if stocks, ok, err := s.stocksByLocation(code); err != nil {
 		return nil, err
@@ -124,7 +133,15 @@ func (s *FlowService) Lookup(ctx context.Context, bearer, code string, warehouse
 			return &PdaHit{Kind: "receipt", Code: code, Message: "已按采购单生成收货单", Receipt: view}, nil
 		}
 	}
-	return &PdaHit{Kind: "miss", Code: code, Message: "没有采购到货。可以按这个物流单现场补一张收货单。"}, nil
+	if s.peers != nil {
+		if order, err := s.peers.LookupFulfillment(ctx, bearer, code); err == nil && order != nil {
+			return s.createPick(order, warehouseID)
+		}
+		if notice, err := s.peers.LookupReturn(ctx, bearer, code); err == nil && notice != nil {
+			return s.createReturn(notice, warehouseID)
+		}
+	}
+	return &PdaHit{Kind: "miss", Code: code, Message: "没有对应单据。采购到货可以现场补收货单。"}, nil
 }
 
 func (s *FlowService) CreateWalkIn(logisticsNo string, warehouseID uint64) (*PdaHit, error) {
