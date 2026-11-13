@@ -302,8 +302,8 @@ type LocationDTO struct {
 	WarehouseID  uint64 `json:"warehouseId" binding:"required"`
 	Code         string `json:"code" binding:"required"`
 	Zone         string `json:"zone"`
-	Aisle        string `json:"aisle"`
 	Shelf        string `json:"shelf"`
+	Level        string `json:"level"`
 	Bin          string `json:"bin"`
 	PickOrder    int    `json:"pickOrder"`
 	PickPosition string `json:"pickPosition"`

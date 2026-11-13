@@ -268,8 +268,8 @@ type WarehouseLocation struct {
 	WarehouseID   uint64    `gorm:"index;not null" json:"warehouseId"`
 	Code          string    `gorm:"size:64;not null" json:"code"` // 库位名称
 	Zone          string    `gorm:"size:64" json:"zone"`
-	Aisle         string    `gorm:"size:64" json:"aisle"`
 	Shelf         string    `gorm:"size:64" json:"shelf"`
+	Level         string    `gorm:"size:64" json:"level"` // 层号
 	Bin           string    `gorm:"size:64" json:"bin"`
 	PickOrder     int       `gorm:"default:0" json:"pickOrder"`   // 拣货顺序
 	PickPosition  string    `gorm:"size:128" json:"pickPosition"` // 拣货位置

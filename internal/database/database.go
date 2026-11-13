@@ -94,6 +94,7 @@ func ensureIndexes(db *gorm.DB) error {
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_xfer_tenant_no ON transfer_orders (tenant_id, doc_no);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_pim_map_inv ON pim_sku_mappings (tenant_id, inv_sku_id);
 			CREATE UNIQUE INDEX IF NOT EXISTS idx_pim_map_pim ON pim_sku_mappings (tenant_id, pim_sku_id);
+			ALTER TABLE warehouse_locations DROP COLUMN IF EXISTS aisle;
 		`).Error
 	default:
 		return nil

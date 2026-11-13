@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { api } from '../../api/wms'
@@ -15,6 +15,22 @@ const warehouseId = ref<number | undefined>()
 const keyword = ref('')
 const visible = ref(false)
 const form = ref<any>({})
+let applyingForm = false
+
+function composedCode(source: any) {
+  const parts = [source.zone, source.shelf, source.level, source.bin].map((part) => String(part || '').trim())
+  if (parts.some((part) => !part)) return ''
+  return parts.join('-')
+}
+
+watch(
+  () => [form.value.zone, form.value.shelf, form.value.level, form.value.bin],
+  () => {
+    if (applyingForm) return
+    const code = composedCode(form.value)
+    if (code) form.value.code = code
+  },
+)
 
 const selectedLocation = ref<any>(null)
 const boundSkus = ref<any[]>([])
@@ -77,13 +93,14 @@ function search() {
   load()
 }
 
-function openCreate() {
+async function openCreate() {
+  applyingForm = true
   form.value = {
     warehouseId: warehouseId.value,
     code: '',
     zone: '',
-    aisle: '',
     shelf: '',
+    level: '',
     bin: '',
     pickOrder: 0,
     pickPosition: '',
@@ -91,11 +108,16 @@ function openCreate() {
     status: 1,
   }
   visible.value = true
+  await nextTick()
+  applyingForm = false
 }
 
-function openEdit(row: any) {
-  form.value = { ...row }
+async function openEdit(row: any) {
+  applyingForm = true
+  form.value = { ...row, level: row.level || '' }
   visible.value = true
+  await nextTick()
+  applyingForm = false
 }
 
 async function save() {
@@ -271,17 +293,17 @@ function whName(id: number) {
           </el-select>
         </el-form-item>
         <el-form-item label="库位名称" required>
-          <el-input v-model="form.code" placeholder="如 A-01-01" />
+          <el-input v-model="form.code" placeholder="填写库区、货架、层号、格位后自动生成" />
         </el-form-item>
         <el-form-item label="拣货顺序">
           <el-input-number v-model="form.pickOrder" :min="0" :controls="false" style="width: 100%" />
         </el-form-item>
         <el-form-item label="拣货位置">
-          <el-input v-model="form.pickPosition" placeholder="可直接填写，或由库区-巷道-货架-格位自动拼接" />
+          <el-input v-model="form.pickPosition" placeholder="留空时按库区-货架-层号-格位保存" />
         </el-form-item>
         <el-form-item label="库区"><el-input v-model="form.zone" /></el-form-item>
-        <el-form-item label="巷道"><el-input v-model="form.aisle" /></el-form-item>
         <el-form-item label="货架"><el-input v-model="form.shelf" /></el-form-item>
+        <el-form-item label="层号"><el-input v-model="form.level" /></el-form-item>
         <el-form-item label="格位"><el-input v-model="form.bin" /></el-form-item>
         <el-form-item label="备注"><el-input v-model="form.remark" /></el-form-item>
         <el-form-item label="状态">

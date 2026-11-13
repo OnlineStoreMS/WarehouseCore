@@ -1322,9 +1322,27 @@ func (s *MasterService) ListLocations(warehouseID uint64, keyword string, page, 
 	return list, total, nil
 }
 
+func locationCode(zone, shelf, level, bin string) string {
+	parts := []string{
+		strings.TrimSpace(zone),
+		strings.TrimSpace(shelf),
+		strings.TrimSpace(level),
+		strings.TrimSpace(bin),
+	}
+	for _, part := range parts {
+		if part == "" {
+			return ""
+		}
+	}
+	return strings.Join(parts, "-")
+}
+
 func composePickPosition(l model.WarehouseLocation) string {
+	if code := locationCode(l.Zone, l.Shelf, l.Level, l.Bin); code != "" {
+		return code
+	}
 	parts := []string{}
-	for _, p := range []string{l.Zone, l.Aisle, l.Shelf, l.Bin} {
+	for _, p := range []string{l.Zone, l.Shelf, l.Level, l.Bin} {
 		p = strings.TrimSpace(p)
 		if p != "" {
 			parts = append(parts, p)
@@ -1343,13 +1361,16 @@ func (s *MasterService) CreateLocation(in *dto.LocationDTO) (*model.WarehouseLoc
 		WarehouseID:  in.WarehouseID,
 		Code:         strings.TrimSpace(in.Code),
 		Zone:         strings.TrimSpace(in.Zone),
-		Aisle:        strings.TrimSpace(in.Aisle),
 		Shelf:        strings.TrimSpace(in.Shelf),
+		Level:        strings.TrimSpace(in.Level),
 		Bin:          strings.TrimSpace(in.Bin),
 		PickOrder:    in.PickOrder,
 		PickPosition: strings.TrimSpace(in.PickPosition),
 		Remark:       strings.TrimSpace(in.Remark),
 		Status:       statusOrDefault(in.Status),
+	}
+	if code := locationCode(item.Zone, item.Shelf, item.Level, item.Bin); code != "" {
+		item.Code = code
 	}
 	if item.PickPosition == "" {
 		item.PickPosition = composePickPosition(*item)
@@ -1371,13 +1392,16 @@ func (s *MasterService) UpdateLocation(id uint64, in *dto.LocationDTO) (*model.W
 	}
 	item.Code = strings.TrimSpace(in.Code)
 	item.Zone = strings.TrimSpace(in.Zone)
-	item.Aisle = strings.TrimSpace(in.Aisle)
 	item.Shelf = strings.TrimSpace(in.Shelf)
+	item.Level = strings.TrimSpace(in.Level)
 	item.Bin = strings.TrimSpace(in.Bin)
 	item.PickOrder = in.PickOrder
 	item.PickPosition = strings.TrimSpace(in.PickPosition)
 	item.Remark = strings.TrimSpace(in.Remark)
 	item.Status = statusOrDefault(in.Status)
+	if code := locationCode(item.Zone, item.Shelf, item.Level, item.Bin); code != "" {
+		item.Code = code
+	}
 	if item.PickPosition == "" {
 		item.PickPosition = composePickPosition(item)
 	}
