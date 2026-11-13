@@ -23,7 +23,7 @@ type InvProductDTO struct {
 	Remark             string  `json:"remark"`
 	Pic                string  `json:"pic"`
 	AlbumPics          string  `json:"albumPics"`
-	Status             int8    `json:"status"`
+	Status             *int8   `json:"status"`
 	PimSpuID           *uint64 `json:"pimSpuId"`
 
 	Features            string  `json:"features"`

@@ -178,7 +178,11 @@ func (s *MasterService) ListProducts(keyword string, categoryID uint64, uncatego
 	q := s.db().Model(&model.InvProduct{})
 	if keyword != "" {
 		like := "%" + keyword + "%"
-		q = q.Where("parent_sku ILIKE ? OR name ILIKE ?", like, like)
+		q = q.Where(`parent_sku ILIKE ? OR name ILIKE ? OR EXISTS (
+			SELECT 1 FROM inv_skus s
+			WHERE s.parent_id = inv_products.id AND s.tenant_id = inv_products.tenant_id
+			AND (s.sku_code ILIKE ? OR s.pick_name ILIKE ? OR s.upc ILIKE ? OR s.asin ILIKE ?)
+		)`, like, like, like, like, like, like)
 	}
 	if uncategorized {
 		q = q.Where("category_id = 0")
@@ -235,7 +239,7 @@ func (s *MasterService) CreateProduct(in *dto.InvProductDTO) (*model.InvProduct,
 		Remark:             in.Remark,
 		Pic:                in.Pic,
 		AlbumPics:          in.AlbumPics,
-		Status:             statusOrDefault(in.Status),
+		Status:             productStatus(in.Status),
 		PimSpuID:           in.PimSpuID,
 	}
 	if item.ScoreFactor == 0 {
@@ -272,7 +276,7 @@ func (s *MasterService) UpdateProduct(id uint64, in *dto.InvProductDTO) (*model.
 	item.Remark = in.Remark
 	item.Pic = in.Pic
 	item.AlbumPics = in.AlbumPics
-	item.Status = statusOrDefault(in.Status)
+	item.Status = productStatus(in.Status)
 	item.PimSpuID = in.PimSpuID
 	if in.DevelopedAt != nil {
 		if *in.DevelopedAt == "" {
@@ -567,7 +571,7 @@ func (s *MasterService) applyProductFields(item *model.InvProduct, in *dto.InvPr
 	item.Remark = in.Remark
 	item.Pic = in.Pic
 	item.AlbumPics = in.AlbumPics
-	item.Status = statusOrDefault(in.Status)
+	item.Status = productStatus(in.Status)
 	item.PimSpuID = in.PimSpuID
 	if in.DevelopedAt != nil {
 		if *in.DevelopedAt == "" {
@@ -1510,6 +1514,13 @@ func (s *MasterService) UnbindLocationSku(bindID uint64) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func productStatus(s *int8) int8 {
+	if s == nil {
+		return 1
+	}
+	return *s
 }
 
 func statusOrDefault(s int8) int8 {
