@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"warehousecore/internal/integrations/peers"
 	"warehousecore/internal/model"
@@ -1110,6 +1111,135 @@ func countLabel(status string) string {
 	default:
 		return status
 	}
+}
+
+type TaskCard struct {
+	DocNo     string    `json:"docNo"`
+	Subtitle  string    `json:"subtitle"`
+	Status    string    `json:"status"`
+	QtyText   string    `json:"qtyText"`
+	Extra     string    `json:"extra"`
+	Remark    string    `json:"remark"`
+	Code      string    `json:"code"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type TaskBoard struct {
+	Receive int        `json:"receive"`
+	Audit   int        `json:"audit"`
+	Pick    int        `json:"pick"`
+	Ship    int        `json:"ship"`
+	List    []TaskCard `json:"list"`
+}
+
+func (s *FlowService) Tasks(bucket, keyword string) (*TaskBoard, error) {
+	board := &TaskBoard{List: []TaskCard{}}
+	var err error
+	if board.Receive, err = s.countQuery(&model.ReceiptOrder{}, "status = ? AND po_no <> ''", "open"); err != nil {
+		return nil, err
+	}
+	blocked, err := s.countQuery(&model.PickOrder{}, "status = ?", "blocked")
+	if err != nil {
+		return nil, err
+	}
+	review, err := s.countQuery(&model.StocktakeOrder{}, "status = ?", model.DocStatusReview)
+	if err != nil {
+		return nil, err
+	}
+	board.Audit = blocked + review
+	if board.Pick, err = s.countQuery(&model.PickOrder{}, "status = ?", "picking"); err != nil {
+		return nil, err
+	}
+	if board.Ship, err = s.countQuery(&model.PickOrder{}, "status = ?", "packed"); err != nil {
+		return nil, err
+	}
+	switch bucket {
+	case "receive":
+		board.List, err = s.listReceiveTasks(keyword)
+	case "audit":
+		board.List, err = s.listAuditTasks(keyword)
+	case "pick":
+		board.List, err = s.listPickTasks(keyword, "picking")
+	case "ship":
+		board.List, err = s.listPickTasks(keyword, "packed")
+	}
+	return board, err
+}
+
+func (s *FlowService) countQuery(model interface{}, query string, args ...interface{}) (int, error) {
+	var n int64
+	err := s.repos.DB.Model(model).Where("tenant_id = ?", s.tenantID).Where(query, args...).Count(&n).Error
+	return int(n), err
+}
+
+func (s *FlowService) listReceiveTasks(keyword string) ([]TaskCard, error) {
+	var rows []model.ReceiptOrder
+	q := s.repos.DB.Where("tenant_id = ? AND status = ? AND po_no <> ''", s.tenantID, "open")
+	if keyword = strings.TrimSpace(keyword); keyword != "" {
+		like := "%" + keyword + "%"
+		q = q.Where("doc_no ILIKE ? OR logistics_no ILIKE ? OR po_no ILIKE ? OR supplier_name ILIKE ?", like, like, like, like)
+	}
+	if err := q.Order("id DESC").Limit(30).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]TaskCard, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, TaskCard{
+			DocNo: row.DocNo, Subtitle: row.SupplierName, Status: "open",
+			QtyText: "采购 " + row.PoNo, Extra: row.LogisticsNo, Remark: "采购到货",
+			Code: row.LogisticsNo, CreatedAt: row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (s *FlowService) listPickTasks(keyword, status string) ([]TaskCard, error) {
+	var rows []model.PickOrder
+	q := s.repos.DB.Where("tenant_id = ? AND status = ?", s.tenantID, status)
+	if keyword = strings.TrimSpace(keyword); keyword != "" {
+		like := "%" + keyword + "%"
+		q = q.Where("doc_no ILIKE ? OR order_no ILIKE ? OR buyer ILIKE ?", like, like, like)
+	}
+	if err := q.Order("id DESC").Limit(30).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]TaskCard, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, TaskCard{
+			DocNo: row.DocNo, Subtitle: row.Buyer, Status: row.Status,
+			QtyText: "订单 " + row.OrderNo, Extra: row.Address, Remark: row.BlockReason,
+			Code: row.OrderNo, CreatedAt: row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (s *FlowService) listAuditTasks(keyword string) ([]TaskCard, error) {
+	picks, err := s.listPickTasks(keyword, "blocked")
+	if err != nil {
+		return nil, err
+	}
+	var rows []model.StocktakeOrder
+	q := s.repos.DB.Where("tenant_id = ? AND status = ?", s.tenantID, model.DocStatusReview)
+	if keyword = strings.TrimSpace(keyword); keyword != "" {
+		q = q.Where("doc_no ILIKE ?", "%"+keyword+"%")
+	}
+	if err := q.Order("id DESC").Limit(30).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		code := ""
+		var loc model.WarehouseLocation
+		if s.repos.DB.First(&loc, row.LocationID).Error == nil {
+			code = loc.Code
+		}
+		picks = append(picks, TaskCard{
+			DocNo: row.DocNo, Subtitle: code, Status: row.Status,
+			QtyText: "盘点差异", Extra: row.Remark, Remark: "待审核后才调库存",
+			Code: row.DocNo, CreatedAt: row.CreatedAt,
+		})
+	}
+	return picks, nil
 }
 
 func transferLabel(status string) string {
