@@ -3,7 +3,7 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   HomeFilled, Goods, Box, OfficeBuilding, DataBoard,
-  Document, Switch, Download, Upload, Link,
+  Document, Switch, Download, Upload, Link, Tickets,
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -31,7 +31,7 @@ watch(() => route.path, () => {})
     <el-menu
       :default-active="activeMenu"
       :collapse="collapsed"
-      :default-openeds="[...productOpeneds, 'stock', 'wh', 'stk', 'xfer', 'io', 'integ']"
+      :default-openeds="[...productOpeneds, 'stock', 'wh', 'stk', 'xfer', 'io', 'flow', 'integ']"
       background-color="#001529"
       text-color="#ffffffa6"
       active-text-color="#fff"
@@ -92,6 +92,15 @@ watch(() => route.path, () => {})
       <el-sub-menu index="xfer">
         <template #title><el-icon><Switch /></el-icon><span>仓库调拨</span></template>
         <el-menu-item index="/transfers" @click="navigate('/transfers')">仓库调拨单</el-menu-item>
+      </el-sub-menu>
+
+      <el-sub-menu index="flow">
+        <template #title><el-icon><Tickets /></el-icon><span>仓内作业</span></template>
+        <el-menu-item index="/receipts" @click="navigate('/receipts')">标准入库</el-menu-item>
+        <el-menu-item index="/standard-outbounds" @click="navigate('/standard-outbounds')">标准出库</el-menu-item>
+        <el-menu-item index="/putaways" @click="navigate('/putaways')">上架任务</el-menu-item>
+        <el-menu-item index="/offshelves" @click="navigate('/offshelves')">下架任务</el-menu-item>
+        <el-menu-item index="/picks" @click="navigate('/picks')">拣货单</el-menu-item>
       </el-sub-menu>
 
       <el-sub-menu index="io">

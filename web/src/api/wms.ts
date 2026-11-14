@@ -127,4 +127,15 @@ export const api = {
   updateProfitTrial: (id: number, body: unknown) => client.put(`/profit-trials/${id}`, body),
   deleteProfitTrials: (ids: number[]) => client.post('/profit-trials/delete', { ids }),
   calcProfitTrials: (body: unknown) => client.post('/profit-trials/calc', body).then((r) => r.data.data),
+
+  listReceipts: (params?: Record<string, unknown>) => page<any>('/receipts', params),
+  getReceipt: (id: number) => client.get(`/receipts/${id}`).then((r) => r.data.data),
+  listPutaways: (params?: Record<string, unknown>) => page<any>('/putaways', params),
+  placePutaway: (id: number, body: unknown) => client.post(`/putaways/${id}/place`, body).then((r) => r.data.data),
+  listOffshelves: (params?: Record<string, unknown>) => page<any>('/offshelves', params),
+  listPicks: (params?: Record<string, unknown>) => page<any>('/picks', params),
+  getPick: (id: number) => client.get(`/picks/${id}`).then((r) => r.data.data),
+  scanPick: (id: number, body: unknown) => client.post(`/picks/${id}/scan`, body).then((r) => r.data.data),
+  recheckPick: (id: number) => client.post(`/picks/${id}/recheck`).then((r) => r.data.data),
+  handoverPick: (id: number, body: unknown) => client.post(`/picks/${id}/handover`, body).then((r) => r.data.data),
 }

@@ -49,6 +49,11 @@ const sections: Section[] = [
     items: [
       { title: '仓库盘点单', desc: '新建/审核盘点单', path: '/stocktakes', icon: Document, color: '#67c23a' },
       { title: '仓库调拨单', desc: '仓间调拨过账', path: '/transfers', icon: Switch, color: '#67c23a' },
+      { title: '标准入库', desc: '采购收货单', path: '/receipts', icon: Download, color: '#67c23a' },
+      { title: '标准出库', desc: '复核打包后交接承运商', path: '/standard-outbounds', icon: Upload, color: '#f56c6c' },
+      { title: '上架任务', desc: '收货后绑定库位', path: '/putaways', icon: Box, color: '#409eff' },
+      { title: '下架任务', desc: '按拣货单从库位取货', path: '/offshelves', icon: Box, color: '#e6a23c' },
+      { title: '拣货单', desc: '自营待发货生成的拣货', path: '/picks', icon: Document, color: '#67c23a' },
       { title: '其它入库单', desc: '非采购入库过账', path: '/other-inbounds', icon: Download, color: '#67c23a' },
       { title: '其它出库单', desc: '其它出库过账', path: '/other-outbounds', icon: Upload, color: '#f56c6c' },
     ],

@@ -87,13 +87,13 @@ type PdaTransferLine struct {
 }
 
 type PdaTransfer struct {
-	ID         uint64            `json:"id"`
-	DocNo      string            `json:"docNo"`
-	Status     string            `json:"status"`
-	StatusLabel string           `json:"statusLabel"`
-	FromName   string            `json:"fromName"`
-	ToName     string            `json:"toName"`
-	Lines      []PdaTransferLine `json:"lines"`
+	ID          uint64            `json:"id"`
+	DocNo       string            `json:"docNo"`
+	Status      string            `json:"status"`
+	StatusLabel string            `json:"statusLabel"`
+	FromName    string            `json:"fromName"`
+	ToName      string            `json:"toName"`
+	Lines       []PdaTransferLine `json:"lines"`
 }
 
 func (s *FlowService) lookupLocalCycle(code string) (*PdaHit, error) {
@@ -1147,7 +1147,7 @@ func (s *FlowService) Tasks(bucket, keyword string) (*TaskBoard, error) {
 		return nil, err
 	}
 	board.Audit = blocked + review
-	if board.Pick, err = s.countQuery(&model.PickOrder{}, "status = ?", "picking"); err != nil {
+	if board.Pick, err = s.countQuery(&model.PickOrder{}, "status = ? AND source = ?", "picking", "self"); err != nil {
 		return nil, err
 	}
 	if board.Ship, err = s.countQuery(&model.PickOrder{}, "status = ?", "packed"); err != nil {
@@ -1196,6 +1196,9 @@ func (s *FlowService) listReceiveTasks(keyword string) ([]TaskCard, error) {
 func (s *FlowService) listPickTasks(keyword, status string) ([]TaskCard, error) {
 	var rows []model.PickOrder
 	q := s.repos.DB.Where("tenant_id = ? AND status = ?", s.tenantID, status)
+	if status == "picking" {
+		q = q.Where("source = ?", "self")
+	}
 	if keyword = strings.TrimSpace(keyword); keyword != "" {
 		like := "%" + keyword + "%"
 		q = q.Where("doc_no ILIKE ? OR order_no ILIKE ? OR buyer ILIKE ?", like, like, like)
